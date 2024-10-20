@@ -1,0 +1,6 @@
+To setup face tracking with VRCFT (recommended), follow these steps:
+1. Install VRCFury (https://vrcfury.com/)
+2. Install Jerry's Templates (https://github.com/Adjerry91/VRCFaceTracking-Templates)
+3. Go to the VRCFT - Jerry's Templates folder under packages in your assets, open the prefab folder, and 
+drag in the prefab named "VRCFury - Face Tracking - ARKit Blendshapes" to the root of your avatar. (Must be underneath the name)
+4. Upload the model. You should see a new menu in your radial menu called Face Tracking if you've done these steps correctly.

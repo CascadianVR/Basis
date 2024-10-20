@@ -1,0 +1,45 @@
+【 09/09/24 - V1.5 】
+(Compatible with previous version, just overwrite)
+- Fixed some weight painting on outfits
+- Changed grabbable clothing parameters to not be synced wince physbones are automatically synced - should look smoother.
+- Removed some unused shapekeys
+- Fixed clipping on underwear
+
+【 08/30/24 - V1.4 】
+(Compatible with previous version, just overwrite)
+- Added separate package for Quest support. It needs to be imported after the main package and will have prefabs that are quest compatible
+- Separated hair from head to support different hair styles
+- Added shapekeys for Athletic wear outfit support
+- Updated constraints to use VRChat constraints instead of default Unity ones
+- Fixed breast shapekey slider when using tank-top
+- Fixed breast weighting for body and all outfits
+- Fixed clipping when unzipping skirt
+- Fixed slight slipping on butt when bending legs at extreme angles
+- Fixed clipping when not sfw toggles are all on but underwear toggle is turned off
+
+【 08/17/24 - V1.3 】
+(Compatible with previous version, just overwrite)
+- Adjusted hands to work better with new SteamVR Input 2.0 for VRChat
+- Breast shape now fits better when pulling shirt neck down
+- Adjusted BreastShrink shapekey to not have a couple vertices stick out in the middle
+- Fixed weight paint on sweater to not be so harsh
+
+【 08/12/24 - V1.2 】
+(Compatible with previous version, just overwrite)
+- Added shapekeys for handling parts of the body when making new outfits
+- Reordered shapekeys and removed meta face shapes since it was not fully finished and not used much
+- Fixed breast slider not being synchronized
+- Added .txt file for instructions on setting up face tracking
+- Fixed some of the animators not being updated from previous V1.1 update
+- Updated specular on NSFWBody material to match the normal material
+- Updated some blendshpes to help with shirt clipping on main outfit
+
+【 08/9/24 - V1.1 】
+(Compatible with previous version, just overwrite)
+- Added face emote menu in case you don't want to use hand gestures for faces.
+- Added Face extra texture PSD (eyes and extra face features)
+- Fixed breast size not being correct on some outfits when using the slider.
+- Fixed issues when switching different parts of the underwear on/off and certain bits showing/not showing
+
+【 08/8/24 - V1.0 】
+-Initial release

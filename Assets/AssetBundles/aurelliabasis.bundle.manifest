@@ -1,0 +1,59 @@
+ManifestFileVersion: 0
+UnityVersion: 6000.0.21f1
+CRC: 1570281621
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: dee4eba39b999463a6b3757109eff19b
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: 18ad5bd230a35cf87ea0da32535bb8d2
+  IncrementalBuildHash:
+    serializedVersion: 2
+    Hash: f34589d276deae5beade017c4009c807
+HashAppended: 0
+ClassTypes:
+- Class: 1
+  Script: {instanceID: 0}
+- Class: 4
+  Script: {instanceID: 0}
+- Class: 21
+  Script: {instanceID: 0}
+- Class: 28
+  Script: {instanceID: 0}
+- Class: 43
+  Script: {instanceID: 0}
+- Class: 48
+  Script: {instanceID: 0}
+- Class: 90
+  Script: {instanceID: 0}
+- Class: 95
+  Script: {instanceID: 0}
+- Class: 114
+  Script: {fileID: 11500000, guid: 4d6167f4251c45d3ab851be67e8d775d, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: a4b9838511f44630a6a4dd6acfceccfb, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: 172832deb4c8461cade4c7dddd6aac97, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: d9d401b1964b4b2ca57315b286fe58d5, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: fa65deb420e84b2fa8dd9de87e537393, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: 4c1eb7223814a194fadef176508140fd, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: d50560fa4580c0743ae88a61a873ea83, type: 3}
+- Class: 114
+  Script: {fileID: 11500000, guid: c71512d5f8924cf082bbe2a05e94e85c, type: 3}
+- Class: 115
+  Script: {instanceID: 0}
+- Class: 137
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers:
+- AssemblyName: HVR.Basis.Comms
+  ClassName: HVR.Basis.Comms.BlendshapeActuationDefinition
+- AssemblyName: HVR.Basis.Comms
+  ClassName: HVR.Basis.Comms.FeatureNetPairing
+Assets:
+- Packages/com.basis.basisdk/TemporaryStorage/AurelliaBasis.prefab
+Dependencies: []
