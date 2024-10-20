@@ -1,0 +1,41 @@
+ManifestFileVersion: 0
+UnityVersion: 6000.0.21f1
+CRC: 1232298435
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: 4fa5ec50c2188acaa1a03007ad890a59
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: 159fc252125fb59d74a1d2727fa7e21e
+  IncrementalBuildHash:
+    serializedVersion: 2
+    Hash: e8a3ec1cdd40bd4582decbfd3c4d1b3f
+HashAppended: 0
+ClassTypes:
+- Class: 1
+  Script: {instanceID: 0}
+- Class: 4
+  Script: {instanceID: 0}
+- Class: 21
+  Script: {instanceID: 0}
+- Class: 28
+  Script: {instanceID: 0}
+- Class: 43
+  Script: {instanceID: 0}
+- Class: 48
+  Script: {instanceID: 0}
+- Class: 90
+  Script: {instanceID: 0}
+- Class: 95
+  Script: {instanceID: 0}
+- Class: 114
+  Script: {fileID: 11500000, guid: d50560fa4580c0743ae88a61a873ea83, type: 3}
+- Class: 115
+  Script: {instanceID: 0}
+- Class: 137
+  Script: {instanceID: 0}
+SerializeReferenceClassIdentifiers: []
+Assets:
+- Packages/com.basis.basisdk/TemporaryStorage/ChiyoBasePrefab2.prefab
+Dependencies: []
