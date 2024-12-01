@@ -1,68 +1,36 @@
 ﻿using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
+using Unity.Mathematics; // Using Unity.Mathematics for math operations
 using UnityEngine;
 
 namespace Basis.Scripts.Networking.NetworkedAvatar
 {
-[System.Serializable]
-public struct BasisAvatarData
-{
-    public NativeArray<Vector3> Vectors;
-    public NativeArray<Quaternion> Quaternions;
-    public NativeArray<float> Muscles;
-    public float[] floatArray;
-}
-[BurstCompile]
-public struct UpdateAvatarPositionJob : IJob
-{
-    public NativeArray<Vector3> positions;
-    public NativeArray<Vector3> targetPositions;
-    public float LerpTime;
-    public float teleportThreshold;
-
-    public void Execute()
+    [BurstCompile]
+    public struct UpdateAvatarJob : IJob
     {
-        float distance = Vector3.Distance(positions[0], targetPositions[0]);
+        public NativeArray<float3> OutputVector;
+        public NativeArray<float3> TargetVector;
+        public float Time;
 
-        if (distance > teleportThreshold)
+        public void Execute()
         {
-            positions[0] = targetPositions[0];
-            positions[1] = targetPositions[1];
-            positions[2] = targetPositions[2];
-        }
-        else
-        {
-            positions[0] = Vector3.Lerp(positions[0], targetPositions[0], LerpTime);
-            positions[1] = Vector3.Lerp(positions[1], targetPositions[1], LerpTime);
-            positions[2] = Vector3.Lerp(positions[2], targetPositions[2], LerpTime);
+            // Interpolate positions
+            OutputVector[0] = math.lerp(OutputVector[0], TargetVector[0], Time);
+
+            OutputVector[1] = math.lerp(OutputVector[1], TargetVector[1], Time);
         }
     }
-}
-
-[BurstCompile]
-public struct UpdateAvatarRotationJob : IJob
-{
-    public NativeArray<Quaternion> rotations;
-    public NativeArray<Quaternion> targetRotations;
-    public float LerpTime;
-
-    public void Execute()
+    [BurstCompile]
+    public struct UpdateAvatarMusclesJob : IJobParallelFor
     {
-        rotations[0] = Quaternion.Slerp(rotations[0], targetRotations[0], LerpTime);
-    }
-}
+        public NativeArray<float> Outputmuscles;
+        public NativeArray<float> targetMuscles;
+        public float Time;
 
-[BurstCompile]
-public struct UpdateAvatarMusclesJob : IJobParallelFor
-{
-    public NativeArray<float> muscles;
-    public NativeArray<float> targetMuscles;
-    public float LerpTime;
-
-    public void Execute(int index)
-    {
-        muscles[index] = Mathf.Lerp(muscles[index], targetMuscles[index], LerpTime);
+        public void Execute(int index)
+        {
+            Outputmuscles[index] = math.lerp(Outputmuscles[index], targetMuscles[index], Time);
+        }
     }
-}
 }

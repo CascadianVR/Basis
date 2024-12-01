@@ -2,8 +2,6 @@ using System.Globalization;
 using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.XR;
-
 namespace Basis.Scripts.Common
 {
     public static class BasisDataStore
@@ -20,13 +18,15 @@ namespace Basis.Scripts.Common
         public class BasisSavedAvatar
         {
             public string UniqueID;//this is associated with a ID on Disc
+            public byte loadmode;
             public BasisSavedAvatar(string name, byte data)
             {
                 UniqueID = name;
+                 loadmode = data;
             }
         }
         // Method to load the avatar (string and byte) from a file using JSON
-        public static BasisSavedAvatar LoadAvatar(string fileNameAndExtension, string defaultName, byte defaultData)
+        public static bool LoadAvatar(string fileNameAndExtension, string defaultName, byte defaultData,out BasisSavedAvatar BasisSavedAvatar)
         {
             string filePath = Path.Combine(Application.persistentDataPath, fileNameAndExtension);
             if (File.Exists(filePath))
@@ -36,14 +36,17 @@ namespace Basis.Scripts.Common
                 if (string.IsNullOrEmpty(avatarWrapper.UniqueID))
                 {
                     avatarWrapper.UniqueID = defaultName;
+                     avatarWrapper.loadmode = defaultData;
                 }
                 Debug.Log("Avatar loaded from " + filePath);
-                return avatarWrapper;
+                BasisSavedAvatar = avatarWrapper;
+                return true;
             }
             else
             {
                 Debug.LogWarning("File not found at " + filePath);
-                return null;
+                BasisSavedAvatar = null;
+                return false;
             }
         }
         // Method to save the string to a file using JSON
@@ -204,10 +207,6 @@ namespace Basis.Scripts.Common
             {
                 return UrlList;
             }
-        }
-        public struct BasisSavedContent
-        {
-
         }
     }
 }

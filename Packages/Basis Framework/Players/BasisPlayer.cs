@@ -4,7 +4,6 @@ using Basis.Scripts.Drivers;
 using System;
 using System.Threading;
 using UnityEngine;
-using static BasisProgressReport;
 namespace Basis.Scripts.BasisSdk.Players
 {
     public abstract partial class BasisPlayer : MonoBehaviour
@@ -18,7 +17,7 @@ namespace Basis.Scripts.BasisSdk.Players
         public bool HasAvatarDriver;
         public event Action OnAvatarSwitched;
         public event Action OnAvatarSwitchedFallBack;
-        public ProgressReport ProgressReportAvatarLoad;
+        public BasisProgressReport ProgressReportAvatarLoad = new BasisProgressReport();
         public const byte LoadModeNetworkDownloadable = 0;
         public const byte LoadModeLocal = 1;
         public const byte LoadModeError = 2;
@@ -27,8 +26,10 @@ namespace Basis.Scripts.BasisSdk.Players
         public CancellationToken CurrentAvatarsCancellationToken;
         public byte AvatarLoadMode;//0 downloading 1 local
 
-        public ProgressReport AvatarProgress;
+        public BasisProgressReport AvatarProgress = new BasisProgressReport();
         public CancellationToken CancellationToken;
+        public BasisAvatarStrainJiggleDriver BasisAvatarStrainJiggleDriver;
+        public Action<bool> AudioReceived;
         public void InitalizeIKCalibration(BasisAvatarDriver BasisAvatarDriver)
         {
             if (BasisAvatarDriver != null)
@@ -40,43 +41,24 @@ namespace Basis.Scripts.BasisSdk.Players
                 Debug.LogError("Mising CharacterIKCalibration");
                 HasAvatarDriver = false;
             }
-          // if (BasisAvatarStrainJiggleDriver != null)
+            BasisAvatarStrainJiggleDriver = BasisHelpers.GetOrAddComponent<BasisAvatarStrainJiggleDriver>(this.gameObject);
+            BasisAvatarStrainJiggleDriver.OnCalibration();
+            if (BasisAvatarStrainJiggleDriver != null)
             {
-          //      BasisAvatarStrainJiggleDriver.OnCalibration();
+                BasisAvatarStrainJiggleDriver.OnCalibration();
             }
         }
-        private void UpdateFaceVisibility(bool State)
+        public void UpdateFaceVisibility(bool State)
         {
             FaceisVisible = State;
         }
         public void AvatarSwitchedFallBack()
         {
-            UpdateFaceRenderer();//dont process face for fallback
             OnAvatarSwitchedFallBack?.Invoke();
         }
         public void AvatarSwitched()
         {
-            UpdateFaceRenderer();
             OnAvatarSwitched?.Invoke();
-        }
-        public void UpdateFaceRenderer()
-        {
-            FaceisVisible = false;
-            if (Avatar == null)
-            {
-                Debug.LogError("Missing Avatar");
-            }
-            if (Avatar.FaceVisemeMesh == null)
-            {
-                Debug.Log("Missing Face for " + DisplayName);
-            }
-            UpdateFaceVisibility(Avatar.FaceVisemeMesh.isVisible);
-            if (FaceRenderer != null)
-            {
-                GameObject.Destroy(FaceRenderer);
-            }
-            FaceRenderer = BasisHelpers.GetOrAddComponent<BasisMeshRendererCheck>(Avatar.FaceVisemeMesh.gameObject);
-            FaceRenderer.Check += UpdateFaceVisibility;
         }
     }
 }

@@ -1,25 +1,25 @@
 using Basis.Scripts.Addressable_Driver;
 using Basis.Scripts.Addressable_Driver.Factory;
 using Basis.Scripts.BasisSdk.Players;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
-using static BasisProgressReport;
 namespace Basis.Scripts.Drivers
 {
     public static class BasisSceneLoadDriver
     {
-        public static ProgressReport progressCallback;
+        public static BasisProgressReport progressCallback = new BasisProgressReport();
         /// <summary>
         /// local but can be used remote
         /// </summary>
         /// <param name="SceneToLoad"></param>
         /// <returns></returns>
-        public static async Task LoadSceneAddressables(string SceneToLoad, bool SpawnPlayerOnSceneLoad = true)
+        public static async Task LoadSceneAddressables(string SceneToLoad, bool SpawnPlayerOnSceneLoad = true, UnityEngine.SceneManagement.LoadSceneMode Mode = UnityEngine.SceneManagement.LoadSceneMode.Additive)
         {
             SetIfPlayerShouldSpawnOnSceneLoad(SpawnPlayerOnSceneLoad);
             Debug.Log("Loading Scene " + SceneToLoad);
-            AddressableSceneResource Process = new AddressableSceneResource(SceneToLoad, true, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+            AddressableSceneResource Process = new AddressableSceneResource(SceneToLoad, true, Mode);
             await AddressableLoadFactory.LoadAddressableResourceAsync<SceneInstance>(Process);
             Debug.Log("Loaded Scene " + SceneToLoad);
         }
@@ -32,7 +32,7 @@ namespace Basis.Scripts.Drivers
         {
             SetIfPlayerShouldSpawnOnSceneLoad(SpawnPlayerOnSceneLoad);
             Debug.Log("Loading Scene ");
-           await BasisSceneAssetBundleManager.DownloadAndLoadSceneAsync(MakeSceneActiveScene, BasisLoadableBundle, progressCallback);
+            await BasisLoadHandler.LoadSceneBundle(MakeSceneActiveScene, BasisLoadableBundle, progressCallback, new CancellationToken());
             Debug.Log("Loaded Scene ");
         }
         /// <summary>

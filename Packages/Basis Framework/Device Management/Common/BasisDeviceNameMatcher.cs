@@ -1,12 +1,6 @@
 using Basis.Scripts.TransformBinders.BoneControl;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-
-
-
-//using UnityEditor;
-
 using UnityEngine;
 
 namespace Basis.Scripts.Device_Management
@@ -16,7 +10,10 @@ namespace Basis.Scripts.Device_Management
     {
         [SerializeField]
         public List<BasisDeviceMatchSettings> BasisDevice = new List<BasisDeviceMatchSettings>();
-        public async Task<BasisDeviceMatchSettings> GetAssociatedDeviceMatchableNames(string nameToMatch, BasisBoneTrackedRole FallBackRole = BasisBoneTrackedRole.CenterEye, bool UseFallbackROle = false)
+
+        [SerializeField]
+        public List<BasisDeviceMatchSettings> BackedUpDevices = new List<BasisDeviceMatchSettings>();
+        public BasisDeviceMatchSettings GetAssociatedDeviceMatchableNames(string nameToMatch, BasisBoneTrackedRole FallBackRole = BasisBoneTrackedRole.CenterEye, bool UseFallbackROle = false)
         {
             foreach (BasisDeviceMatchSettings DeviceEntry in BasisDevice)
             {
@@ -40,8 +37,38 @@ namespace Basis.Scripts.Device_Management
             };
             BasisDeviceManagement.Instance.BasisDeviceNameMatcher.BasisDevice.Add(Settings);
             Debug.LogError("Unable to find Configuration for device Generating " + nameToMatch);
-            await BasisDeviceManagement.Instance.LoadAndOrSaveDefaultDeviceConfigs();
+            BasisDeviceManagement.Instance.LoadAndOrSaveDefaultDeviceConfigs();
             return Settings;
+        }
+        public BasisDeviceMatchSettings GetAssociatedDeviceMatchableNamesNoCreate(string nameToMatch)
+        {
+            foreach (BasisDeviceMatchSettings deviceEntry in BasisDevice)
+            {
+                string[] matched = deviceEntry.MatchableDeviceIdsLowered().ToArray();
+                if (matched.Contains(nameToMatch.ToLower()))
+                {
+                    return deviceEntry;
+                }
+            }
+
+            // No matching device found, return null instead of creating or saving
+            Debug.LogWarning("Configuration for device not found: " + nameToMatch);
+            return null;
+        }
+        public BasisDeviceMatchSettings GetAssociatedDeviceMatchableNamesNoCreate(string nameToMatch, BasisDeviceMatchSettings CheckAgainst)
+        {
+            foreach (BasisDeviceMatchSettings deviceEntry in BasisDevice)
+            {
+                string[] matched = deviceEntry.MatchableDeviceIdsLowered().ToArray();
+                if (matched.Contains(nameToMatch.ToLower()))
+                {
+                    return deviceEntry;
+                }
+            }
+
+            // No matching device found, return null instead of creating or saving
+            Debug.LogWarning("Configuration for device not found: " + nameToMatch);
+            return null;
         }
     }
     /*

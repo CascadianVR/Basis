@@ -1,8 +1,6 @@
-﻿public struct OnDiscInformation
+﻿public class OnDiscInformation
 {
-    public string StoredMetaURL;//where we got meta file from
-    public string StoredBundleURL;//where we got bundle file from
-    public string StoredMetaLocal;//where we stored the file
-    public string StoredBundleLocal;//where we stored the file
-    public string AssetToLoad;
+    public BasisRemoteEncyptedBundle StoredRemote = new BasisRemoteEncyptedBundle();//where we got meta file from
+    public BasisStoredEncyptedBundle StoredLocal = new BasisStoredEncyptedBundle();//where we got bundle file from
+    public string AssetIDToLoad;
 }

@@ -10,74 +10,6 @@ namespace Basis.Scripts.Avatar
 {
     public static partial class BasisAvatarIKStageCalibration
     {
-        /// <summary>
-        ///  = 0.4f;
-        /// </summary>
-        public static float MaxDistanceBeforeMax(BasisBoneTrackedRole role)
-        {
-
-            switch (role)
-            {
-                case BasisBoneTrackedRole.CenterEye:
-                    return 0.6f;
-                case BasisBoneTrackedRole.Head:
-                    return 0.6f;
-                case BasisBoneTrackedRole.Neck:
-                    return 0.6f;
-                case BasisBoneTrackedRole.Chest:
-                    return 0.8f;
-                case BasisBoneTrackedRole.Hips:
-                    return 0.8f;
-                case BasisBoneTrackedRole.Spine:
-                    return 0.8f;
-
-                case BasisBoneTrackedRole.LeftUpperLeg:
-                    return 0.8f;
-                case BasisBoneTrackedRole.RightUpperLeg:
-                    return 0.8f;
-
-                case BasisBoneTrackedRole.LeftLowerLeg:
-                    return 0.8f;
-                case BasisBoneTrackedRole.RightLowerLeg:
-                    return 0.8f;
-
-                case BasisBoneTrackedRole.LeftFoot:
-                    return 0.6f;
-                case BasisBoneTrackedRole.RightFoot:
-                    return 0.6f;
-
-                case BasisBoneTrackedRole.LeftShoulder:
-                    return 0.6f;
-                case BasisBoneTrackedRole.RightShoulder:
-                    return 0.6f;
-
-                case BasisBoneTrackedRole.LeftUpperArm:
-                    return 0.8f;
-                case BasisBoneTrackedRole.RightUpperArm:
-                    return 0.8f;
-
-                case BasisBoneTrackedRole.LeftLowerArm:
-                    return 0.8f;
-                case BasisBoneTrackedRole.RightLowerArm:
-                    return 0.8f;
-
-                case BasisBoneTrackedRole.LeftHand:
-                    return 0.6f;
-                case BasisBoneTrackedRole.RightHand:
-                    return 0.6f;
-
-                case BasisBoneTrackedRole.LeftToes:
-                    return 0.6f;
-                case BasisBoneTrackedRole.RightToes:
-                    return 0.6f;
-
-                case BasisBoneTrackedRole.Mouth:
-                    return 0.6f;
-                default:
-                    Console.WriteLine("Unknown role " + role);
-                    return 0.8f;
-            }
-        }
         private static List<BasisBoneTrackedRole> GetAllRoles()
         {
             List<BasisBoneTrackedRole> rolesToDiscover = new List<BasisBoneTrackedRole>();
@@ -107,13 +39,12 @@ namespace Basis.Scripts.Avatar
         }
         public static void FullBodyCalibration()
         {
+            HasFBIKTrackers = false;
             BasisHeightDriver.SetPlayersEyeHeight(BasisLocalPlayer.Instance);
             BasisDeviceManagement.UnassignFBTrackers();
-            //disable builder and it will be updated when the animator updates
-            //now lets grab and apply the height
             BasisLocalPlayer.Instance.LocalBoneDriver.SimulateAndApplyWithoutLerp();
-            //now that we have latest * scale we can run calibration
 
+            //now that we have latest * scale we can run calibration
             BasisLocalPlayer.Instance.AvatarDriver.PutAvatarIntoTPose();
             List<BasisBoneTrackedRole> rolesToDiscover = GetAllRoles();
             List<BasisBoneTrackedRole> trackInputRoles = new List<BasisBoneTrackedRole>();
@@ -158,6 +89,7 @@ namespace Basis.Scripts.Avatar
             }
             List<BasisTrackerMapping> boneTransformMappings = new List<BasisTrackerMapping>();
             int Count = trackInputRoles.Count;
+            Dictionary<BasisBoneTrackedRole, Transform> StoredRolesTransforms = GetAllRolesAsTransform();
             for (int Index = 0; Index < Count; Index++)
             {
                 BasisBoneTrackedRole role = trackInputRoles[Index];
@@ -165,8 +97,11 @@ namespace Basis.Scripts.Avatar
                 {
                     float ScaledDistance = MaxDistanceBeforeMax(role) * BasisLocalPlayer.Instance.EyeRatioAvatarToAvatarDefaultScale;
                     Debug.Log("Using a scaler of  " + BasisLocalPlayer.Instance.EyeRatioAvatarToAvatarDefaultScale + " leading to a scaled Distance of " + ScaledDistance);
-                    BasisTrackerMapping mapping = new BasisTrackerMapping(control, role, connectors, ScaledDistance);
-                    boneTransformMappings.Add(mapping);
+                    if (StoredRolesTransforms.TryGetValue(role, out Transform Transform))
+                    {
+                        BasisTrackerMapping mapping = new BasisTrackerMapping(control, Transform, role, connectors, ScaledDistance);
+                        boneTransformMappings.Add(mapping);
+                    }
                 }
                 else
                 {
@@ -189,12 +124,14 @@ namespace Basis.Scripts.Avatar
                     Debug.LogError("Missing Tracker for index " + Index + " with ID " + mapping);
                 }
             }
-            BasisLocalPlayer.Instance.AvatarDriver.ResetAvatarAnimator();
             //do the roles after to stop the animator switch issue
-            BasisLocalPlayer.Instance.AvatarDriver.CalibrateRoles();
+            BasisLocalPlayer.Instance.LocalBoneDriver.CalculateHeading();
+
+            BasisLocalPlayer.Instance.AvatarDriver.ResetAvatarAnimator();
+            BasisLocalPlayer.Instance.AvatarDriver.CalibrateRoles();//not needed but still doing just incase
             BasisLocalPlayer.Instance.AvatarDriver.AnimatorDriver.AssignHipsFBTracker();
-            // BasisLocalPlayer.Instance.AvatarDriver.Builder.enabled = true;
         }
+        public static bool HasFBIKTrackers = false;
         public static void RunThroughConnectors(BasisTrackerMapping mapping, ref List<BasisInput> BasisInputs, ref List<BasisBoneTrackedRole> roles)
         {
             // List to store the calibration actions
@@ -213,6 +150,8 @@ namespace Basis.Scripts.Avatar
                         // Store the calibration action instead of executing it directly
                         calibrationActions.Add(() =>
                         {
+
+                            HasFBIKTrackers = true;
                             Connector.BasisInput.ApplyTrackerCalibration(mapping.BasisBoneControlRole);
                         });
 
@@ -235,6 +174,90 @@ namespace Basis.Scripts.Avatar
             {
                 Action action = calibrationActions[Index];
                 action();
+            }
+        }
+        public static Dictionary<BasisBoneTrackedRole, Transform> GetAllRolesAsTransform()
+        {
+            Common.BasisTransformMapping Mapping = BasisLocalPlayer.Instance.AvatarDriver.References;
+            Dictionary<BasisBoneTrackedRole, Transform> transforms = new Dictionary<BasisBoneTrackedRole, Transform>
+    {
+        { BasisBoneTrackedRole.Hips,Mapping.Hips },
+        { BasisBoneTrackedRole.Spine, Mapping.spine },
+        { BasisBoneTrackedRole.Chest, Mapping.chest },
+    //    { BasisBoneTrackedRole.Upperchest, BasisLocalPlayer.Instance.AvatarDriver.References.Upperchest },
+        { BasisBoneTrackedRole.Neck, Mapping.neck },
+        { BasisBoneTrackedRole.Head, Mapping.head },
+       // { BasisBoneTrackedRole.CenterEye, LeftEye },  // Assuming "CenterEye" means LeftEye; adjust as needed
+       // { BasisBoneTrackedRole.RightEye, RightEye },   // Add these based on your actual structure
+
+        { BasisBoneTrackedRole.LeftShoulder, Mapping.leftShoulder },
+        { BasisBoneTrackedRole.LeftUpperArm, Mapping.leftUpperArm },
+        { BasisBoneTrackedRole.LeftLowerArm, Mapping.leftLowerArm },
+        { BasisBoneTrackedRole.LeftHand, Mapping.leftHand },
+
+        { BasisBoneTrackedRole.RightShoulder, Mapping.RightShoulder },
+        { BasisBoneTrackedRole.RightUpperArm,Mapping. RightUpperArm },
+        { BasisBoneTrackedRole.RightLowerArm, Mapping.RightLowerArm },
+        { BasisBoneTrackedRole.RightHand, Mapping.rightHand },
+
+        { BasisBoneTrackedRole.LeftUpperLeg,Mapping.LeftUpperLeg },
+        { BasisBoneTrackedRole.LeftLowerLeg,Mapping. LeftLowerLeg },
+        { BasisBoneTrackedRole.LeftFoot, Mapping.leftFoot },
+        { BasisBoneTrackedRole.LeftToes,Mapping. leftToes },
+
+        { BasisBoneTrackedRole.RightUpperLeg, Mapping.RightUpperLeg },
+        { BasisBoneTrackedRole.RightLowerLeg,Mapping. RightLowerLeg },
+        { BasisBoneTrackedRole.RightFoot, Mapping.rightFoot },
+        { BasisBoneTrackedRole.RightToes,Mapping. rightToes },
+            };
+
+            return transforms;
+        }
+        /// <summary>
+        ///  = 0.4f;
+        /// </summary>
+        public static float MaxDistanceBeforeMax(BasisBoneTrackedRole role)
+        {
+
+            switch (role)
+            {
+                case BasisBoneTrackedRole.Chest:
+                    return 0.45f;
+                case BasisBoneTrackedRole.Hips:
+                    return 0.45f;
+
+                case BasisBoneTrackedRole.LeftLowerLeg:
+                    return 0.5f;
+                case BasisBoneTrackedRole.RightLowerLeg:
+                    return 0.5f;
+
+                case BasisBoneTrackedRole.LeftFoot:
+                    return 0.5f;
+                case BasisBoneTrackedRole.RightFoot:
+                    return 0.5f;
+
+                case BasisBoneTrackedRole.LeftShoulder:
+                    return 0.4f;
+                case BasisBoneTrackedRole.RightShoulder:
+                    return 0.4f;
+
+                case BasisBoneTrackedRole.LeftLowerArm:
+                    return 0.6f;
+                case BasisBoneTrackedRole.RightLowerArm:
+                    return 0.6f;
+
+                case BasisBoneTrackedRole.LeftHand:
+                    return 0.4f;
+                case BasisBoneTrackedRole.RightHand:
+                    return 0.4f;
+
+                case BasisBoneTrackedRole.LeftToes:
+                    return 0.4f;
+                case BasisBoneTrackedRole.RightToes:
+                    return 0.4f;
+                default:
+                    Console.WriteLine("Unknown role " + role);
+                    return 0;
             }
         }
     }

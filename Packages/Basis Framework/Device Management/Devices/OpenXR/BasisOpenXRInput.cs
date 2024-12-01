@@ -1,6 +1,6 @@
 using Basis.Scripts.BasisSdk.Players;
 using Basis.Scripts.TransformBinders.BoneControl;
-using System.Threading.Tasks;
+using Unity.Mathematics;
 using UnityEngine;
 using static BasisBaseMuscleDriver;
 
@@ -12,34 +12,44 @@ namespace Basis.Scripts.Device_Management.Devices.OpenXR
         public UnityEngine.XR.InputDevice Device;
         public FingerPose FingerCurls;
         public BasisOpenXRInputEye BasisOpenXRInputEye;
-        public async Task Initialize(UnityEngine.XR.InputDevice device, string UniqueID, string UnUniqueID, string subSystems, bool AssignTrackedRole, BasisBoneTrackedRole basisBoneTrackedRole)
+        public BasisVirtualSpineDriver BasisVirtualSpine = new BasisVirtualSpineDriver(); 
+        public void Initialize(UnityEngine.XR.InputDevice device, string UniqueID, string UnUniqueID, string subSystems, bool AssignTrackedRole, BasisBoneTrackedRole basisBoneTrackedRole)
         {
             Device = device;
-            await InitalizeTracking(UniqueID, UnUniqueID, subSystems, AssignTrackedRole, basisBoneTrackedRole);
-            if(basisBoneTrackedRole == BasisBoneTrackedRole.CenterEye)
+            InitalizeTracking(UniqueID, UnUniqueID, subSystems, AssignTrackedRole, basisBoneTrackedRole);
+            if (basisBoneTrackedRole == BasisBoneTrackedRole.CenterEye)
             {
                 BasisOpenXRInputEye = this.gameObject.AddComponent<BasisOpenXRInputEye>();
                 BasisOpenXRInputEye.Initalize();
+                BasisVirtualSpine.Initialize();
             }
+        }
+        public new void OnDestroy()
+        {
+            BasisVirtualSpine.DeInitialize();
+            base.OnDestroy();
         }
         public override void DoPollData()
         {
             if (Device.isValid)
             {
                 // Rotation and Position
-                if (Device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.deviceRotation, out LocalRawRotation))
+                if (Device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.deviceRotation, out Quaternion Rotation))
                 {
+                    LocalRawRotation = Rotation;
                     if (hasRoleAssigned && Control.HasTracked != BasisHasTracked.HasNoTracker)
                     {
-                        Control.IncomingData.rotation = FinalRotation * AvatarRotationOffset;
+                        Control.IncomingData.rotation = math.mul(LocalRawRotation, Quaternion.Euler(AvatarRotationOffset));
                     }
                 }
 
-                if (Device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.devicePosition, out LocalRawPosition))
+                if (Device.TryGetFeatureValue(UnityEngine.XR.CommonUsages.devicePosition, out Vector3 Position))
                 {
+                    LocalRawPosition = Position;
                     if (hasRoleAssigned && Control.HasTracked != BasisHasTracked.HasNoTracker)
                     {
-                        Control.IncomingData.position = LocalRawPosition - LocalRawRotation * AvatarPositionOffset;
+                        // Apply the inverse rotation to position offset
+                        Control.IncomingData.position = LocalRawPosition - math.mul(LocalRawRotation, AvatarPositionOffset);
                     }
                 }
 

@@ -220,6 +220,17 @@ MonoBehaviour:
   basisLocalPlayer: {fileID: 0}
   Input: {fileID: 4506459589283058818}
   HasEvents: 0
+  IgnoreCrouchToggle: 0
+  InputState:
+    gripButton: 0
+    menuButton: 0
+    primaryButtonGetState: 0
+    secondaryButtonGetState: 0
+    secondary2DAxisClick: 0
+    primary2DAxisClick: 0
+    trigger: 0
+    primary2DAxis: {x: 0, y: 0}
+    secondary2DAxis: {x: 0, y: 0}
 --- !u!114 &2682791463296768347
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -392,7 +403,7 @@ MonoBehaviour:
     Name: Antialiasing
     ValueDescriptor: Antialiasing
     SelectedValueDefault: smaa
-    ValueDefault: smaa
+    ValueDefault: ultra
     Explanation: Antialiasing
     selectedValue: smaa
     Type: 1
@@ -409,14 +420,16 @@ MonoBehaviour:
     ParseController: 1
     ReturnedValueTextType: 1
     SelectableValueList:
-    - realValue: taa
-      UserValue: TAA
-    - realValue: fxaa
-      UserValue: FXAA
-    - realValue: smaa
-      UserValue: SMAA
-    - realValue: noaa
-      UserValue: NOAA
+    - realValue: very low
+      UserValue: Very Low
+    - realValue: low
+      UserValue: Low
+    - realValue: medium
+      UserValue: Medium
+    - realValue: high
+      UserValue: High
+    - realValue: ultra
+      UserValue: Ultra
   - EditorBasedUIToggles:
       SupportedRenderPipelines: 0
       DefaultPlatform: 0
@@ -488,7 +501,7 @@ MonoBehaviour:
     ValueDefault: ultra
     Explanation: Ambient Occlusion
     selectedValue: ultra
-    Type: 1
+    Type: 4
     TextDescription: {fileID: 0}
     ObjectInput: {fileID: 0}
     ApplyInput: {fileID: 0}
@@ -646,46 +659,6 @@ MonoBehaviour:
     MinPercentage: 0
     SliderMaxValue: 0
     SliderMinValue: 0
-    Name: Shadow Distance
-    ValueDescriptor: Shadow Distance
-    SelectedValueDefault: ultra
-    ValueDefault: ultra
-    Explanation: Shadow Distance
-    selectedValue: ultra
-    Type: 1
-    TextDescription: {fileID: 0}
-    ObjectInput: {fileID: 0}
-    ApplyInput: {fileID: 0}
-    ResetToDefault: {fileID: 0}
-    PlatFormDefaultState: []
-    ExcludeFromThesePlatforms: []
-    MasterQualityState: 1
-    ParseController: 1
-    ReturnedValueTextType: 0
-    SelectableValueList:
-    - realValue: very low
-      UserValue: Very Low
-    - realValue: low
-      UserValue: Low
-    - realValue: medium
-      UserValue: Medium
-    - realValue: high
-      UserValue: High
-    - realValue: ultra
-      UserValue: Ultra
-  - EditorBasedUIToggles:
-      SupportedRenderPipelines: 0
-      DefaultPlatform: 0
-      ExcludePlatform: 0
-      ValueToggle: 0
-      EditorVisable: 0
-    SupportedRenderPipeline: 030000000400000000000000
-    Round: 0
-    RoundTo: 0
-    MaxPercentage: 0
-    MinPercentage: 0
-    SliderMaxValue: 0
-    SliderMinValue: 0
     Name: Texture Quality
     ValueDescriptor: Texture Quality
     SelectedValueDefault: ultra
@@ -731,7 +704,7 @@ MonoBehaviour:
     SelectedValueDefault: on
     ValueDefault: on
     Explanation: Vertical Sync
-    selectedValue: off
+    selectedValue: on
     Type: 1
     TextDescription: {fileID: 0}
     ObjectInput: {fileID: 0}
@@ -954,6 +927,114 @@ MonoBehaviour:
     - realValue: ultra
       UserValue: Ultra
   - EditorBasedUIToggles:
+      SupportedRenderPipelines: 1
+      DefaultPlatform: 1
+      ExcludePlatform: 1
+      ValueToggle: 1
+      EditorVisable: 0
+    SupportedRenderPipeline: 030000000400000000000000
+    Round: 0
+    RoundTo: 2
+    MaxPercentage: 100
+    MinPercentage: 0
+    SliderMaxValue: 100
+    SliderMinValue: 0
+    Name: UpScaler
+    ValueDescriptor: UpScaler
+    SelectedValueDefault: False
+    ValueDefault: auto
+    Explanation: UpScaler
+    selectedValue: auto
+    Type: 1
+    TextDescription: {fileID: 0}
+    ObjectInput: {fileID: 0}
+    ApplyInput: {fileID: 0}
+    ResetToDefault: {fileID: 0}
+    PlatFormDefaultState: []
+    ExcludeFromThesePlatforms: []
+    MasterQualityState: 0
+    ParseController: 1
+    ReturnedValueTextType: 0
+    SelectableValueList:
+    - realValue: auto
+      UserValue: Auto
+    - realValue: linear upscaling
+      UserValue: Linear Upscaling
+    - realValue: point upscaling
+      UserValue: Point Upscaling
+    - realValue: fsr upscaling
+      UserValue: FSR Upscaling
+    - realValue: spatial temporal upscaling
+      UserValue: Spatial Temporal Upscaling
+  - EditorBasedUIToggles:
+      SupportedRenderPipelines: 0
+      DefaultPlatform: 1
+      ExcludePlatform: 0
+      ValueToggle: 1
+      EditorVisable: 0
+    SupportedRenderPipeline: 030000000400000000000000
+    Round: 0
+    RoundTo: 2
+    MaxPercentage: 100
+    MinPercentage: 0
+    SliderMaxValue: 100
+    SliderMinValue: 0
+    Name: Microphone Denoiser
+    ValueDescriptor: Microphone Denoiser
+    SelectedValueDefault: 
+    ValueDefault: false
+    Explanation: 
+    selectedValue: false
+    Type: 1
+    TextDescription: {fileID: 0}
+    ObjectInput: {fileID: 0}
+    ApplyInput: {fileID: 0}
+    ResetToDefault: {fileID: 0}
+    PlatFormDefaultState: []
+    ExcludeFromThesePlatforms: []
+    MasterQualityState: 0
+    ParseController: 1
+    ReturnedValueTextType: 0
+    SelectableValueList:
+    - realValue: true
+      UserValue: true
+    - realValue: false
+      UserValue: false
+  - EditorBasedUIToggles:
+      SupportedRenderPipelines: 0
+      DefaultPlatform: 0
+      ExcludePlatform: 0
+      ValueToggle: 1
+      EditorVisable: 0
+    SupportedRenderPipeline: 030000000400000000000000
+    Round: 0
+    RoundTo: 2
+    MaxPercentage: 100
+    MinPercentage: 0
+    SliderMaxValue: 100
+    SliderMinValue: 0
+    Name: Debug Visuals
+    ValueDescriptor: Debug Visuals
+    SelectedValueDefault: 
+    ValueDefault: False
+    Explanation: 
+    selectedValue: false
+    Type: 1
+    TextDescription: {fileID: 0}
+    ObjectInput: {fileID: 0}
+    ApplyInput: {fileID: 0}
+    ResetToDefault: {fileID: 0}
+    PlatFormDefaultState: []
+    ExcludeFromThesePlatforms: []
+    MasterQualityState: 0
+    ParseController: 1
+    ReturnedValueTextType: 0
+    SelectableValueList:
+    - realValue: true
+      UserValue: true
+    - realValue: false
+      UserValue: false
+  - EditorBasedUIToggles:
       SupportedRenderPipelines: 0
       DefaultPlatform: 0
       ExcludePlatform: 0
@@ -1039,7 +1120,7 @@ MonoBehaviour:
       ExcludePlatform: 0
       ValueToggle: 1
       EditorVisable: 0
-    SupportedRenderPipeline: 030000000400000000000000
+    SupportedRenderPipeline: 030000000000000004000000
     Round: 0
     RoundTo: 0
     MaxPercentage: 0
@@ -1063,16 +1144,14 @@ MonoBehaviour:
     ParseController: 1
     ReturnedValueTextType: 0
     SelectableValueList:
-    - realValue: exclusive fullscreen
-      UserValue: Exclusive FullScreen
     - realValue: fullscreen
-      UserValue: Fullscreen
+      UserValue: fullscreen
     - realValue: maximized window
       UserValue: Maximized Window
     - realValue: windowed
-      UserValue: Windowed
+      UserValue: windowed
   - EditorBasedUIToggles:
-      SupportedRenderPipelines: 0
+      SupportedRenderPipelines: 1
       DefaultPlatform: 0
       ExcludePlatform: 0
       ValueToggle: 1
@@ -1110,19 +1189,19 @@ MonoBehaviour:
       ValueToggle: 0
       EditorVisable: 0
     SupportedRenderPipeline: 030000000400000000000000
-    Round: 1
-    RoundTo: 1
+    Round: 0
+    RoundTo: 2
     MaxPercentage: 100
     MinPercentage: 0
-    SliderMaxValue: 1
+    SliderMaxValue: 100
     SliderMinValue: 0
-    Name: Main Audio
-    ValueDescriptor: 62%
-    SelectedValueDefault: 1
-    ValueDefault: 1
-    Explanation: Main Audio
-    selectedValue: 1
-    Type: 3
+    Name: Selected Microphone
+    ValueDescriptor: 
+    SelectedValueDefault: 
+    ValueDefault: False
+    Explanation: 
+    selectedValue: microphone (nvidia broadcast)
+    Type: 2
     TextDescription: {fileID: 0}
     ObjectInput: {fileID: 0}
     ApplyInput: {fileID: 0}
@@ -1131,6 +1210,50 @@ MonoBehaviour:
     ExcludeFromThesePlatforms: []
     MasterQualityState: 0
     ParseController: 1
+    ReturnedValueTextType: 0
+    SelectableValueList:
+    - realValue: microphone (virtual desktop audio)
+      UserValue: Microphone (Virtual Desktop Audio)
+    - realValue: microphone (antlion wireless microphone)
+      UserValue: Microphone (Antlion Wireless Microphone)
+    - realValue: headset microphone (oculus virtual audio device)
+      UserValue: Headset Microphone (Oculus Virtual Audio Device)
+    - realValue: microphone (logitech streamcam)
+      UserValue: Microphone (Logitech StreamCam)
+    - realValue: microphone (rode nt-usb)
+      UserValue: Microphone (RODE NT-USB)
+    - realValue: microphone (steam streaming microphone)
+      UserValue: Microphone (Steam Streaming Microphone)
+    - realValue: microphone (nvidia broadcast)
+      UserValue: Microphone (NVIDIA Broadcast)
+  - EditorBasedUIToggles:
+      SupportedRenderPipelines: 0
+      DefaultPlatform: 0
+      ExcludePlatform: 0
+      ValueToggle: 0
+      EditorVisable: 0
+    SupportedRenderPipeline: 030000000400000000000000
+    Round: 1
+    RoundTo: 0
+    MaxPercentage: 100
+    MinPercentage: 0
+    SliderMaxValue: 100
+    SliderMinValue: 0
+    Name: Main Audio
+    ValueDescriptor: 62%
+    SelectedValueDefault: 100
+    ValueDefault: 100
+    Explanation: Main Audio
+    selectedValue: 100
+    Type: 3
+    TextDescription: {fileID: 0}
+    ObjectInput: {fileID: 0}
+    ApplyInput: {fileID: 0}
+    ResetToDefault: {fileID: 0}
+    PlatFormDefaultState: []
+    ExcludeFromThesePlatforms: []
+    MasterQualityState: 0
+    ParseController: 0
     ReturnedValueTextType: 0
     SelectableValueList: []
   - EditorBasedUIToggles:
@@ -1179,7 +1302,7 @@ MonoBehaviour:
     Name: World Volume
     ValueDescriptor: 62%
     SelectedValueDefault: 50
-    ValueDefault: 70
+    ValueDefault: 80
     Explanation: Player Volume
     selectedValue: 70
     Type: 3
@@ -1260,50 +1383,6 @@ MonoBehaviour:
       ValueToggle: 0
       EditorVisable: 0
     SupportedRenderPipeline: 030000000400000000000000
-    Round: 0
-    RoundTo: 2
-    MaxPercentage: 100
-    MinPercentage: 0
-    SliderMaxValue: 100
-    SliderMinValue: 0
-    Name: Selected Microphone
-    ValueDescriptor: 
-    SelectedValueDefault: 
-    ValueDefault: False
-    Explanation: 
-    selectedValue: digital audio interface (valve vr radio & hmd mic)
-    Type: 2
-    TextDescription: {fileID: 0}
-    ObjectInput: {fileID: 0}
-    ApplyInput: {fileID: 0}
-    ResetToDefault: {fileID: 0}
-    PlatFormDefaultState: []
-    ExcludeFromThesePlatforms: []
-    MasterQualityState: 0
-    ParseController: 1
-    ReturnedValueTextType: 0
-    SelectableValueList:
-    - realValue: digital audio interface (valve vr radio & hmd mic)
-      UserValue: Digital Audio Interface (Valve VR Radio & HMD Mic)
-    - realValue: headset microphone (oculus virtual audio device)
-      UserValue: Headset Microphone (Oculus Virtual Audio Device)
-    - realValue: microphone (nvidia broadcast)
-      UserValue: Microphone (NVIDIA Broadcast)
-    - realValue: microphone (steam streaming microphone)
-      UserValue: Microphone (Steam Streaming Microphone)
-    - realValue: microphone (logitech streamcam)
-      UserValue: Microphone (Logitech StreamCam)
-    - realValue: microphone (2- rode nt-usb)
-      UserValue: Microphone (2- RODE NT-USB)
-    - realValue: microphone (2- antlion wireless microphone)
-      UserValue: Microphone (2- Antlion Wireless Microphone)
-  - EditorBasedUIToggles:
-      SupportedRenderPipelines: 0
-      DefaultPlatform: 0
-      ExcludePlatform: 0
-      ValueToggle: 0
-      EditorVisable: 0
-    SupportedRenderPipeline: 030000000400000000000000
     Round: 1
     RoundTo: 0
     MaxPercentage: 150
@@ -1332,7 +1411,7 @@ MonoBehaviour:
       DefaultPlatform: 0
       ExcludePlatform: 0
       ValueToggle: 0
-      EditorVisable: 1
+      EditorVisable: 0
     SupportedRenderPipeline: 030000000400000000000000
     Round: 1
     RoundTo: 1
@@ -1345,7 +1424,7 @@ MonoBehaviour:
     SelectedValueDefault: 1
     ValueDefault: 1
     Explanation: 
-    selectedValue: 1
+    selectedValue: 0.9680337
     Type: 3
     TextDescription: {fileID: 0}
     ObjectInput: {fileID: 0}
@@ -1357,80 +1436,6 @@ MonoBehaviour:
     ParseController: 1
     ReturnedValueTextType: 1
     SelectableValueList: []
-  - EditorBasedUIToggles:
-      SupportedRenderPipelines: 1
-      DefaultPlatform: 1
-      ExcludePlatform: 1
-      ValueToggle: 1
-      EditorVisable: 0
-    SupportedRenderPipeline: 030000000400000000000000
-    Round: 0
-    RoundTo: 2
-    MaxPercentage: 100
-    MinPercentage: 0
-    SliderMaxValue: 100
-    SliderMinValue: 0
-    Name: UpScaler
-    ValueDescriptor: UpScaler
-    SelectedValueDefault: False
-    ValueDefault: auto
-    Explanation: UpScaler
-    selectedValue: auto
-    Type: 1
-    TextDescription: {fileID: 0}
-    ObjectInput: {fileID: 0}
-    ApplyInput: {fileID: 0}
-    ResetToDefault: {fileID: 0}
-    PlatFormDefaultState: []
-    ExcludeFromThesePlatforms: []
-    MasterQualityState: 0
-    ParseController: 1
-    ReturnedValueTextType: 0
-    SelectableValueList:
-    - realValue: auto
-      UserValue: Auto
-    - realValue: linear upscaling
-      UserValue: Linear Upscaling
-    - realValue: point upscaling
-      UserValue: Point Upscaling
-    - realValue: fsr upscaling
-      UserValue: FSR Upscaling
-    - realValue: spatial temporal upscaling
-      UserValue: Spatial Temporal Upscaling
-  - EditorBasedUIToggles:
-      SupportedRenderPipelines: 0
-      DefaultPlatform: 1
-      ExcludePlatform: 0
-      ValueToggle: 1
-      EditorVisable: 0
-    SupportedRenderPipeline: 030000000400000000000000
-    Round: 0
-    RoundTo: 2
-    MaxPercentage: 100
-    MinPercentage: 0
-    SliderMaxValue: 100
-    SliderMinValue: 0
-    Name: Microphone Denoiser
-    ValueDescriptor: Microphone Denoiser
-    SelectedValueDefault: 
-    ValueDefault: false
-    Explanation: 
-    selectedValue: false
-    Type: 1
-    TextDescription: {fileID: 0}
-    ObjectInput: {fileID: 0}
-    ApplyInput: {fileID: 0}
-    ResetToDefault: {fileID: 0}
-    PlatFormDefaultState: []
-    ExcludeFromThesePlatforms: []
-    MasterQualityState: 0
-    ParseController: 1
-    ReturnedValueTextType: 0
-    SelectableValueList:
-    - realValue: true
-      UserValue: true
-    - realValue: false
-      UserValue: false
   - EditorBasedUIToggles:
       SupportedRenderPipelines: 0
       DefaultPlatform: 0
@@ -1461,40 +1466,6 @@ MonoBehaviour:
     ParseController: 1
     ReturnedValueTextType: 1
     SelectableValueList: []
-  - EditorBasedUIToggles:
-      SupportedRenderPipelines: 0
-      DefaultPlatform: 0
-      ExcludePlatform: 0
-      ValueToggle: 1
-      EditorVisable: 0
-    SupportedRenderPipeline: 030000000400000000000000
-    Round: 0
-    RoundTo: 2
-    MaxPercentage: 100
-    MinPercentage: 0
-    SliderMaxValue: 100
-    SliderMinValue: 0
-    Name: Debug Visuals
-    ValueDescriptor: Debug Visuals
-    SelectedValueDefault: 
-    ValueDefault: False
-    Explanation: 
-    selectedValue: false
-    Type: 1
-    TextDescription: {fileID: 0}
-    ObjectInput: {fileID: 0}
-    ApplyInput: {fileID: 0}
-    ResetToDefault: {fileID: 0}
-    PlatFormDefaultState: []
-    ExcludeFromThesePlatforms: []
-    MasterQualityState: 0
-    ParseController: 1
-    ReturnedValueTextType: 0
-    SelectableValueList:
-    - realValue: true
-      UserValue: true
-    - realValue: false
-      UserValue: false
   SaveModules:
   - {fileID: 6482417607131076391}
   - {fileID: 256212325347645450}
@@ -1624,7 +1595,7 @@ MonoBehaviour:
       UserValue: Ultra
     Min: 0
     Max: 0
-  - Name: Shadow Distance
+  - Name: Texture Quality
     DefaultValue: ultra
     SelectedValue: ultra
     Index: 6
@@ -1641,27 +1612,10 @@ MonoBehaviour:
       UserValue: Ultra
     Min: 0
     Max: 0
-  - Name: Texture Quality
-    DefaultValue: ultra
-    SelectedValue: ultra
-    Index: 7
-    SelectableValueList:
-    - realValue: very low
-      UserValue: Very Low
-    - realValue: low
-      UserValue: Low
-    - realValue: medium
-      UserValue: Medium
-    - realValue: high
-      UserValue: High
-    - realValue: ultra
-      UserValue: Ultra
-    Min: 0
-    Max: 0
   - Name: Vertical Sync
     DefaultValue: on
-    SelectedValue: off
-    Index: 8
+    SelectedValue: on
+    Index: 7
     SelectableValueList:
     - realValue: on
       UserValue: On
@@ -1674,7 +1628,7 @@ MonoBehaviour:
   - Name: Volumetric Quality
     DefaultValue: ultra
     SelectedValue: ultra
-    Index: 9
+    Index: 8
     SelectableValueList:
     - realValue: very low
       UserValue: Very Low
@@ -1691,7 +1645,7 @@ MonoBehaviour:
   - Name: Memory Allocation
     DefaultValue: dynamic
     SelectedValue: dynamic
-    Index: 10
+    Index: 9
     SelectableValueList:
     - realValue: 256
       UserValue: 256
@@ -1712,7 +1666,7 @@ MonoBehaviour:
   - Name: Close Point Shadows
     DefaultValue: ultra
     SelectedValue: ultra
-    Index: 11
+    Index: 10
     SelectableValueList:
     - realValue: very low
       UserValue: Very Low
@@ -1729,7 +1683,7 @@ MonoBehaviour:
   - Name: HDR Support
     DefaultValue: true
     SelectedValue: true
-    Index: 12
+    Index: 11
     SelectableValueList:
     - realValue: true
       UserValue: true
@@ -1740,7 +1694,7 @@ MonoBehaviour:
   - Name: Terrain Quality
     DefaultValue: ultra
     SelectedValue: ultra
-    Index: 13
+    Index: 12
     SelectableValueList:
     - realValue: very low
       UserValue: Very Low
@@ -1756,8 +1710,8 @@ MonoBehaviour:
     Max: 0
   - Name: Resolution
     DefaultValue: 
-    SelectedValue: 24
-    Index: 14
+    SelectedValue: auto
+    Index: 13
     SelectableValueList:
     - realValue: 640x480
       UserValue: 640x480
@@ -1813,8 +1767,8 @@ MonoBehaviour:
     Max: 0
   - Name: ScreenMode
     DefaultValue: 
-    SelectedValue: 3
-    Index: 15
+    SelectedValue: false
+    Index: 14
     SelectableValueList:
     - realValue: exclusive fullscreen
       UserValue: Exclusive FullScreen
@@ -1828,8 +1782,8 @@ MonoBehaviour:
     Max: 0
   - Name: Monitor
     DefaultValue: 
-    SelectedValue: 0
-    Index: 16
+    SelectedValue: false
+    Index: 15
     SelectableValueList:
     - realValue: 0
       UserValue: 0
@@ -1838,42 +1792,42 @@ MonoBehaviour:
   - Name: Main Audio
     DefaultValue: 1
     SelectedValue: 1
+    Index: 16
+    SelectableValueList: []
+    Min: 0
+    Max: 0
+  - Name: Menus Volume
+    DefaultValue: 50
+    SelectedValue: 70
     Index: 17
     SelectableValueList: []
     Min: 0
-    Max: 1
-  - Name: Menus Volume
+    Max: 0
+  - Name: World Volume
     DefaultValue: 50
     SelectedValue: 70
     Index: 18
     SelectableValueList: []
     Min: 0
-    Max: 80
-  - Name: World Volume
+    Max: 0
+  - Name: Player Volume
     DefaultValue: 50
-    SelectedValue: 70
+    SelectedValue: 6
     Index: 19
     SelectableValueList: []
     Min: 0
-    Max: 80
-  - Name: Player Volume
-    DefaultValue: 50
-    SelectedValue: 70
-    Index: 20
-    SelectableValueList: []
-    Min: 0
-    Max: 80
+    Max: 0
   - Name: Microphone Volume
     DefaultValue: 1
     SelectedValue: 1
-    Index: 21
+    Index: 20
     SelectableValueList: []
     Min: 0
-    Max: 1
+    Max: 100
   - Name: Selected Microphone
     DefaultValue: 
-    SelectedValue: 0
-    Index: 22
+    SelectedValue: 70
+    Index: 21
     SelectableValueList:
     - realValue: digital audio interface (valve vr radio & hmd mic)
       UserValue: Digital Audio Interface (Valve VR Radio & HMD Mic)
@@ -1890,25 +1844,25 @@ MonoBehaviour:
     - realValue: microphone (2- antlion wireless microphone)
       UserValue: Microphone (2- Antlion Wireless Microphone)
     Min: 0
-    Max: 0
+    Max: 80
   - Name: Mcrophone Volume
     DefaultValue: 1
-    SelectedValue: 1
+    SelectedValue: 70
+    Index: 22
+    SelectableValueList: []
+    Min: 0
+    Max: 80
+  - Name: Render Resolution
+    DefaultValue: 1
+    SelectedValue: 70
     Index: 23
     SelectableValueList: []
     Min: 0
-    Max: 1.5
-  - Name: Render Resolution
-    DefaultValue: 1
-    SelectedValue: 1
-    Index: 24
-    SelectableValueList: []
-    Min: 0.25
-    Max: 1.5
+    Max: 80
   - Name: UpScaler
     DefaultValue: False
-    SelectedValue: auto
-    Index: 25
+    SelectedValue: 1
+    Index: 24
     SelectableValueList:
     - realValue: auto
       UserValue: Auto
@@ -1921,36 +1875,36 @@ MonoBehaviour:
     - realValue: spatial temporal upscaling
       UserValue: Spatial Temporal Upscaling
     Min: 0
-    Max: 0
+    Max: 1
   - Name: Microphone Denoiser
     DefaultValue: 
-    SelectedValue: false
-    Index: 26
+    SelectedValue: 1
+    Index: 25
     SelectableValueList:
     - realValue: true
       UserValue: true
     - realValue: false
       UserValue: false
     Min: 0
-    Max: 0
+    Max: 1.5
   - Name: Controller DeadZone
     DefaultValue: 0.05
-    SelectedValue: 0.1
-    Index: 27
+    SelectedValue: 0.9680337
+    Index: 26
     SelectableValueList: []
-    Min: 0
-    Max: 0.5
+    Min: 0.25
+    Max: 1.5
   - Name: Debug Visuals
     DefaultValue: 
-    SelectedValue: false
-    Index: 28
+    SelectedValue: 0.1
+    Index: 27
     SelectableValueList:
     - realValue: true
       UserValue: true
     - realValue: false
       UserValue: false
     Min: 0
-    Max: 0
+    Max: 0.5
   DefaultSaveType:
     Platform: 0
     SaveType: JSON
@@ -2024,7 +1978,7 @@ MonoBehaviour:
   ManagerModuleOptions:
   - OptionName: Main Audio
     Explanation: Main Audio
-    Parse: 1
+    Parse: 0
     Type: 3
   - OptionName: Menus Volume
     Explanation: UI Sounds
@@ -2038,7 +1992,6 @@ MonoBehaviour:
     Explanation: 
     Parse: 0
     Type: 3
-  UseAudioListener: 1
   Mixer: {fileID: 24100000, guid: 471a0209081144d4da2426822e8a0b47, type: 2}
 --- !u!114 &4907001347912712639
 MonoBehaviour:
@@ -2123,7 +2076,7 @@ MonoBehaviour:
     Explanation: Vertical Sync
     Parse: 1
     Type: 1
-  CurrentMode: 
+  CurrentMode: on
 --- !u!114 &3784412682251115113
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2180,7 +2133,7 @@ MonoBehaviour:
     Explanation: 
     Parse: 1
     Type: 2
-  Manager: {fileID: 0}
+  Manager: {fileID: 6378574261833472064}
 --- !u!114 &8638552490007219108
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2215,6 +2168,7 @@ MonoBehaviour:
     Explanation: 
     Parse: 1
     Type: 2
+  LastResolution: 
 --- !u!114 &1962641699494196431
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2240,15 +2194,15 @@ MonoBehaviour:
     Explanation: 
     Parse: 1
     Type: 1
-  Manager: {fileID: 0}
+  Manager: {fileID: 6378574261833472064}
   MicrophoneDevice:
-  - Digital Audio Interface (Valve VR Radio & HMD Mic)
+  - Microphone (Virtual Desktop Audio)
+  - Microphone (Antlion Wireless Microphone)
   - Headset Microphone (Oculus Virtual Audio Device)
-  - Microphone (NVIDIA Broadcast)
-  - Microphone (Steam Streaming Microphone)
   - Microphone (Logitech StreamCam)
-  - Microphone (2- RODE NT-USB)
-  - Microphone (2- Antlion Wireless Microphone)
+  - Microphone (RODE NT-USB)
+  - Microphone (Steam Streaming Microphone)
+  - Microphone (NVIDIA Broadcast)
 --- !u!114 &734679581483801923
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2265,8 +2219,8 @@ MonoBehaviour:
   - OptionName: Ambient Occlusion
     Explanation: Ambient Occlusion
     Parse: 1
-    Type: 1
-  AmbientOcclusion: {fileID: -1878332245247344467, guid: c40be3174f62c4acf8c1216858c64956, type: 2}
+    Type: 4
+  AmbientOcclusion: {fileID: 0}
 --- !u!114 &7074081770173294057
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2284,10 +2238,8 @@ MonoBehaviour:
     Explanation: Antialiasing
     Parse: 1
     Type: 1
-  Asset: {fileID: 11400000, guid: 7b7fd9122c28c4d15b667c7040e3b3fd, type: 2}
   Camera: {fileID: 0}
   Data: {fileID: 0}
-  veryLowmsaaSampleCount: 1
   LowmsaaSampleCount: 2
   MediumLowmsaaSampleCount: 4
   HighmsaaSampleCount: 8
@@ -2308,7 +2260,6 @@ MonoBehaviour:
     Explanation: HDR Support
     Parse: 1
     Type: 1
-  Asset: {fileID: 11400000, guid: 7b7fd9122c28c4d15b667c7040e3b3fd, type: 2}
 --- !u!114 &1027479742639559022
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2326,26 +2277,6 @@ MonoBehaviour:
     Explanation: Shadow Quality
     Parse: 1
     Type: 1
-  - OptionName: Shadow Distance
-    Explanation: Shadow Distance
-    Parse: 1
-    Type: 1
-  Asset: {fileID: 11400000, guid: 7b7fd9122c28c4d15b667c7040e3b3fd, type: 2}
-  VeryLowShadowQualityAdditional: 256
-  VeryLowShadowQuality: 256
-  VeryLowShadowDistance: 150
-  LowShadowQualityAdditional: 256
-  LowShadowQuality: 512
-  LowShadowDistance: 250
-  MediumShadowQualityAdditional: 512
-  mediumShadowQuality: 1024
-  MediumShadowDistance: 350
-  HighShadowQualityAdditional: 1024
-  highShadowQuality: 2048
-  HighShadowDistance: 500
-  ultraShadowQualityAdditional: 2048
-  ultraShadowQuality: 4096
-  UltraShadowDistance: 1000
 --- !u!114 &2467030893667730727
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2401,5 +2332,4 @@ MonoBehaviour:
     Explanation: UpScaler
     Parse: 1
     Type: 1
-  Asset: {fileID: 11400000, guid: 7b7fd9122c28c4d15b667c7040e3b3fd, type: 2}
-  RenderScale: 0
+  RenderScale: 0.9680337

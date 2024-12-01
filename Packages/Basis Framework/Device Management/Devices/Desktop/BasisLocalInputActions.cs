@@ -36,7 +36,8 @@ namespace Basis.Scripts.Device_Management.Devices.Desktop
         public PlayerInput Input;
         public static string InputActions = "InputActions";
         public bool HasEvents = false;
-        public static Action LateUpdateEvent;
+        public bool IgnoreCrouchToggle = false;
+        public static Action AfterAvatarChanges;
         [SerializeField]
         public BasisInputState InputState = new BasisInputState();
         public void OnEnable()
@@ -65,16 +66,12 @@ namespace Basis.Scripts.Device_Management.Devices.Desktop
         private void OnBeforeRender()
         {
             BasisLocalPlayer.Instance.LocalBoneDriver.SimulateAndApply();
+            AfterAvatarChanges?.Invoke();
         }
 
         public void Update()
         {
             InputSystem.Update();
-        }
-        public void LateUpdate()
-        {
-            LateUpdateEvent?.Invoke();
-          //  BasisLocalPlayer.Instance.LocalBoneDriver.SimulateAndApply();
         }
         public static async Task CreateInputAction(BasisLocalPlayer Local)
         {
@@ -265,20 +262,41 @@ namespace Basis.Scripts.Device_Management.Devices.Desktop
 
             if (context.phase == InputActionPhase.Performed)
             {
-                Crouching = !Crouching;
+                if (!IgnoreCrouchToggle) Crouching = !Crouching;
                 if (CharacterEyeInput != null)
                 {
                     CharacterEyeInput.HandleMouseRotation(LookDirection);
+                }
+                if (Crouching)
+                {
+                    basisLocalPlayer.Move.SpeedMultiplyer = 0;
+                }
+                else
+                {
+                    basisLocalPlayer.Move.SpeedMultiplyer = 0.5f;
                 }
             }
         }
         public void RunStarted()
         {
-            basisLocalPlayer.Move.RunningToggle();
+            if (Crouching)
+            {
+            }
+            else
+            {
+                basisLocalPlayer.Move.SpeedMultiplyer = 1;
+            }
         }
         public void RunCancelled()
         {
-            basisLocalPlayer.Move.RunningToggle();
+            if (Crouching)
+            {
+                basisLocalPlayer.Move.SpeedMultiplyer = 0;
+            }
+            else
+            {
+                basisLocalPlayer.Move.SpeedMultiplyer = 0.5f;
+            }
         }
     }
 }

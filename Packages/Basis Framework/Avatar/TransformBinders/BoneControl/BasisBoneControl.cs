@@ -1,27 +1,153 @@
 ﻿using Basis.Scripts.Avatar;
 using Basis.Scripts.Common;
-using Basis.Scripts.Common.Enums;
+using System;
 using Unity.Burst;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Events;
-
 namespace Basis.Scripts.TransformBinders.BoneControl
 {
     [System.Serializable]
     [BurstCompile]
     public class BasisBoneControl
     {
+        [SerializeField]
+        public BasisTargetControl TargetControl = new BasisTargetControl();
+        [SerializeField]
+        public BasisCalibratedCoords OutGoingData = new BasisCalibratedCoords();
+        [SerializeField]
+        public BasisCalibratedCoords LastRunData = new BasisCalibratedCoords();
+        [SerializeField]
+        public BasisCalibratedCoords TposeLocal = new BasisCalibratedCoords();
+        [SerializeField]
+        public BasisCalibratedOffsetData InverseOffsetFromBone = new BasisCalibratedOffsetData();
+        [SerializeField]
+        public BasisCalibratedCoords IncomingData = new BasisCalibratedCoords();
+        [SerializeField]
+        public BasisCalibratedCoords OutgoingWorldData = new BasisCalibratedCoords();
+        public int GizmoReference = -1;
+        public bool HasGizmo = false;
+
+        public int TposeGizmoReference = -1;
+        public bool TposeHasGizmo = false;
+        public Action VirtualRun;
+        public bool HasVirtualOverride;
+        public float trackersmooth = 25;
+
+        public bool IsHintRoleIgnoreRotation = false;
+        public void ComputeMovement(float DeltaTime)
+        {
+            NotProcessing = !HasBone || Cullable;
+            if (NotProcessing)
+            {
+                return;
+            }
+            if (HasTracked == BasisHasTracked.HasTracker)
+            {
+                if (InverseOffsetFromBone.Use)
+                {
+                    if (IsHintRoleIgnoreRotation == false)
+                    {                    // Update the position of the secondary transform to maintain the initial offset
+                        OutGoingData.position = Vector3.Lerp(OutGoingData.position, IncomingData.position + math.mul(IncomingData.rotation, InverseOffsetFromBone.position), trackersmooth);
+                        // Update the rotation of the secondary transform to maintain the initial offset
+                        OutGoingData.rotation = Quaternion.Slerp(OutGoingData.rotation, math.mul(IncomingData.rotation, InverseOffsetFromBone.rotation), trackersmooth);
+                    }
+                    else
+                    {
+                        OutGoingData.rotation = Quaternion.identity;
+                        // Update the position of the secondary transform to maintain the initial offset
+                        OutGoingData.position = Vector3.Lerp(OutGoingData.position, IncomingData.position + math.mul(IncomingData.rotation, InverseOffsetFromBone.position), trackersmooth);
+                    }
+                }
+                else
+                {
+                    ///this is going to the generic always accurate fake skeleton
+                    OutGoingData.rotation = IncomingData.rotation;
+                    OutGoingData.position = IncomingData.position;
+                }
+            }
+            else
+            {
+                if (HasVirtualOverride)
+                {
+                    VirtualRun?.Invoke();
+                }
+                else
+                {
+                    //this is essentially the default behaviour, most of it is normally Virtually Overriden
+                    //relying on a one size fits all shoe is wrong and as of such we barely use this anymore.
+                    if (TargetControl.HasRotationalTarget)
+                    {
+                        OutGoingData.rotation = ApplyLerpToQuaternion(DeltaTime, LastRunData.rotation, TargetControl.Target.OutGoingData.rotation);
+                    }
+
+                    if (TargetControl.HasTarget)
+                    {
+                        // Apply the rotation offset using math.mul
+                        float3 customDirection = math.mul(TargetControl.Target.OutGoingData.rotation, TargetControl.Offset);
+
+                        // Calculate the target outgoing position with the rotated offset
+                        float3 targetPosition = TargetControl.Target.OutGoingData.position + customDirection;
+
+                        // Clamp the interpolation factor to ensure it stays between 0 and 1
+                        float lerpFactor = math.clamp(TargetControl.LerpAmount * DeltaTime, 0f, 1f);
+
+                        // Interpolate between the last position and the target position
+                        OutGoingData.position = math.lerp(LastRunData.position, targetPosition, lerpFactor);
+                    }
+                }
+            }
+        }
+        [BurstCompile]
+        public Quaternion ApplyLerpToQuaternion(float DeltaTime, Quaternion CurrentRotation, Quaternion FutureRotation)
+        {
+            // Calculate the dot product once to check similarity between rotations
+            float dotProduct = math.dot(CurrentRotation, FutureRotation);
+
+            // If quaternions are nearly identical, skip interpolation
+            if (dotProduct > 0.999999f)
+            {
+                return FutureRotation;
+            }
+
+            // Calculate angle difference, avoid acos for very small differences
+            float angleDifference = math.acos(math.clamp(dotProduct, -1f, 1f));
+
+            // If the angle difference is very small, skip interpolation
+            if (angleDifference < math.EPSILON)
+            {
+                return FutureRotation;
+            }
+
+            // Cached LerpAmount values for normal and fast movement
+            float lerpAmountNormal = TargetControl.LerpAmountNormal;
+            float lerpAmountFastMovement = TargetControl.LerpAmountFastMovement;
+
+            // Timing factor for speed-up
+            float timing = math.min(angleDifference / TargetControl.AngleBeforeSpeedup, 1f);
+
+            // Interpolate between normal and fast movement rates based on angle
+            float lerpAmount = lerpAmountNormal + (lerpAmountFastMovement - lerpAmountNormal) * timing;
+
+            // Apply frame-rate-independent lerp factor
+            float lerpFactor = lerpAmount * DeltaTime;
+
+            // Perform spherical interpolation (slerp) with the optimized factor
+            return math.slerp(CurrentRotation, FutureRotation, lerpFactor);
+        }
+        [HideInInspector]
         public bool Cullable = false;
         [SerializeField]
         public string Name;
         [SerializeField]
+        [HideInInspector]
         private Color gizmoColor = Color.blue;
         [SerializeField]
+        [HideInInspector]
         public bool HasBone = false;
         [SerializeField]
         public Transform BoneTransform;
-        [SerializeField]
-        public Transform BoneModelTransform;
+        [HideInInspector]
         public bool HasEvents = false;
         // Events for property changes
         public System.Action<BasisHasTracked> OnHasTrackerDriverChanged;
@@ -42,6 +168,8 @@ namespace Basis.Scripts.TransformBinders.BoneControl
                 }
             }
         }
+        [HideInInspector]
+        public bool NotProcessing = false;
         // Events for property changes
         public UnityEvent OnHasRigChanged = new UnityEvent();
 
@@ -62,8 +190,10 @@ namespace Basis.Scripts.TransformBinders.BoneControl
                 }
             }
         }
+        [HideInInspector]
         [SerializeField]
         private float positionWeight = 1;
+        [HideInInspector]
         [SerializeField]
         private float rotationWeight = 1;
         public float PositionWeight
@@ -90,251 +220,31 @@ namespace Basis.Scripts.TransformBinders.BoneControl
                 }
             }
         }
-
+        [HideInInspector]
         public BasisGeneralLocation GeneralLocation;
-        [SerializeField]
-        public BasisRotationalControl RotationControl = new BasisRotationalControl();
-        [SerializeField]
-        public BasisPositionControl PositionControl = new BasisPositionControl();
-        [SerializeField]
-        public BasisCalibratedOffsetData OutGoingData = new BasisCalibratedOffsetData();
-        [SerializeField]
-        public BasisCalibratedOffsetData LastRunData = new BasisCalibratedOffsetData();
-        [SerializeField]
-        public BasisCalibratedOffsetData TposeWorld = new BasisCalibratedOffsetData();
-        [SerializeField]
-        public BasisCalibratedOffsetData TposeLocal = new BasisCalibratedOffsetData();
-        [SerializeField]
-        public BasisCalibratedOffsetData InverseOffsetFromBone = new BasisCalibratedOffsetData();
-        [SerializeField]
-        public BasisCalibratedOffsetData IncomingData = new BasisCalibratedOffsetData();
-        [SerializeField]
-        public BasisCalibratedOffsetData OutgoingWorldData = new BasisCalibratedOffsetData();
-        [SerializeField]
-        public BasisCalibratedOffsetData LastWorldData = new BasisCalibratedOffsetData();
         public Color Color { get => gizmoColor; set => gizmoColor = value; }
         public void Initialize()
         {
             if (HasBone)
             {
-                BoneTransform.GetLocalPositionAndRotation(out LastRunData.position, out LastRunData.rotation);
+                BoneTransform.GetLocalPositionAndRotation(out Vector3 position, out Quaternion Rotation);
+                LastRunData.position = position;
+                LastRunData.rotation = Rotation;
             }
-        }
-        /// <summary>
-        /// Compute a rotation and position in stages
-        /// 1. get rotation
-        /// 2. 
-        /// </summary>
-        /// <param name="time"></param>
-        public void ComputeMovement(double time, float DeltaTime)
-        {
-            if (!HasBone)
-            {
-                return;
-            }
-            if (Cullable)
-            {
-                return;
-            }
-
-            if (HasTracked == BasisHasTracked.HasNoTracker)
-            {
-                //if angle is larger then 4 then lets then lets begin checking to see if we can snap it back
-                if (RotationControl.UseAngle && AngleCheck(OutGoingData.rotation, OutGoingData.rotation, RotationControl.AngleBeforeMove))
-                {
-                    if (RotationControl.HasActiveTimer)
-                    {
-                        if (time > RotationControl.NextReset)
-                        {
-                            ApplyTargetRotation();
-                            QuaternionClamp();
-                            ApplyLerpToQuaternion((RotationControl.LerpAmountNormal / 2) * DeltaTime);
-                            if (AngleCheck(OutGoingData.rotation, RotationControl.Target.OutGoingData.rotation))
-                            {
-                                RotationControl.NextReset = double.MaxValue;
-                                RotationControl.HasActiveTimer = false;
-                            }
-                        }
-                        else
-                        {
-                            RunRotationChange(DeltaTime);
-                        }
-                    }
-                    else
-                    {
-                        RotationControl.NextReset = time + RotationControl.ResetAfterTime;
-                        RotationControl.HasActiveTimer = true;
-                    }
-                }
-                else
-                {
-                    //normal
-                    RunRotationChange(DeltaTime);
-                }
-                ApplyTargetPosition();
-                ApplyLerpToVector(PositionControl.LerpAmount * DeltaTime);
-            }
-            else
-            {
-                if (HasTracked == BasisHasTracked.HasTracker)
-                {
-                    if (InverseOffsetFromBone.Use)
-                    {
-                        // Update the position of the secondary transform to maintain the initial offset
-                        OutGoingData.position = IncomingData.position + IncomingData.rotation * InverseOffsetFromBone.position;
-
-                        // Update the rotation of the secondary transform to maintain the initial offset
-                        OutGoingData.rotation = IncomingData.rotation * InverseOffsetFromBone.rotation;
-                    }
-                    else
-                    {
-                        OutGoingData.rotation = IncomingData.rotation;
-                        OutGoingData.position = IncomingData.position;
-                    }
-                }
-            }
-        }
-        public void SetOffset()
-        {
-            BoneModelTransform.SetLocalPositionAndRotation(Vector3.zero, TposeWorld.rotation);
-        }
-        public void RunRotationChange(float DeltaTime)
-        {
-            ApplyTargetRotation();
-            QuaternionClamp();
-            ApplyLerpToQuaternion(DeltaTime);
-        }
-        [BurstCompile]
-        public bool AngleCheck(Quaternion AngleA, Quaternion AngleB, float MaximumTolerance = 0.005f)
-        {
-            float Angle = Quaternion.Angle(AngleA, AngleB);
-            bool AngleLargeEnough = Angle > MaximumTolerance;
-            return AngleLargeEnough;
         }
         public void ApplyMovement()
         {
-            if (!HasBone)
-            {
-                return;
-            }
-            if (Cullable)
+            if (NotProcessing)
             {
                 return;
             }
             LastRunData.position = OutGoingData.position;
             LastRunData.rotation = OutGoingData.rotation;
-            LastWorldData.position = OutgoingWorldData.position;
-            LastWorldData.rotation = OutgoingWorldData.rotation;
             BoneTransform.SetLocalPositionAndRotation(OutGoingData.position, OutGoingData.rotation);
-            BoneTransform.GetPositionAndRotation(out OutgoingWorldData.position, out OutgoingWorldData.rotation);
-        }
-        [BurstCompile]
-        public void QuaternionClamp()
-        {
-            if (RotationControl.ClampStats != BasisClampData.Clamp)
-            {
-                return;
-            }
-            Vector3 clampedEulerAngles = OutGoingData.rotation.eulerAngles;
-            if (RotationControl.ClampableAxis == BasisClampAxis.x)
-            {
-                clampedEulerAngles.x = Mathf.Clamp(clampedEulerAngles.x, clampedEulerAngles.x - RotationControl.ClampSize, RotationControl.ClampSize);
-            }
-            else if (RotationControl.ClampableAxis == BasisClampAxis.y)
-            {
-                clampedEulerAngles.y = Mathf.Clamp(clampedEulerAngles.y, clampedEulerAngles.y - RotationControl.ClampSize, RotationControl.ClampSize);
-            }
-            else if (RotationControl.ClampableAxis == BasisClampAxis.z)
-            {
-                clampedEulerAngles.z = Mathf.Clamp(clampedEulerAngles.z, clampedEulerAngles.z - RotationControl.ClampSize, RotationControl.ClampSize);
-            }
-            else if (RotationControl.ClampableAxis == BasisClampAxis.xz)
-            {
-                clampedEulerAngles.z = Mathf.Clamp(clampedEulerAngles.z, clampedEulerAngles.z - RotationControl.ClampSize, RotationControl.ClampSize);
-                clampedEulerAngles.x = Mathf.Clamp(clampedEulerAngles.x, clampedEulerAngles.x - RotationControl.ClampSize, RotationControl.ClampSize);
-            }
-            OutGoingData.rotation = Quaternion.Euler(clampedEulerAngles);
-        }
-        public void ApplyTargetPosition()
-        {
-            switch (PositionControl.TaretInterpreter)
-            {
-                case BasisTargetController.Target:
-                    OutGoingData.position = PositionControl.Target.OutGoingData.position + PositionControl.Offset;
-                    break;
+            BoneTransform.GetPositionAndRotation(out Vector3 position, out Quaternion Rotation);
 
-                case BasisTargetController.TargetDirectional:
-                    Vector3 customDirection = PositionControl.Target.OutGoingData.rotation * PositionControl.Offset;
-                    OutGoingData.position = PositionControl.Target.OutGoingData.position + customDirection;
-                    break;
-            }
-        }
-        public void ApplyTargetRotation()
-        {
-            switch (RotationControl.TaretInterpreter)
-            {
-                case BasisTargetController.Target:
-                    OutGoingData.rotation = RotationControl.Target.OutGoingData.rotation;
-                    break;
-
-                case BasisTargetController.TargetDirectional:
-                    OutGoingData.rotation = RotationControl.Target.OutGoingData.rotation * RotationControl.Offset;
-                    break;
-            }
-        }
-        [BurstCompile]
-        private void ApplyLerpToQuaternion(float deltaTime)
-        {
-            if (RotationControl.Lerp == BasisAxisLerp.None)
-            {
-                return;
-            }
-
-            float angleDifference = Quaternion.Angle(LastRunData.rotation, OutGoingData.rotation);
-            float timing = Mathf.Clamp01(angleDifference / RotationControl.AngleBeforeSpeedup);
-            float lerpAmount = Mathf.Lerp(RotationControl.LerpAmountNormal, RotationControl.LerpAmountFastMovement, timing);
-
-            float lerpFactor = lerpAmount * deltaTime;
-
-            Quaternion lastRotation = LastRunData.rotation;
-            Quaternion outgoingRotation = OutGoingData.rotation;
-
-            switch (RotationControl.Lerp)
-            {
-                case BasisAxisLerp.Lerp:
-                    OutGoingData.rotation = Quaternion.Lerp(lastRotation, outgoingRotation, lerpFactor);
-                    break;
-                case BasisAxisLerp.SphericalLerp:
-                    OutGoingData.rotation = Quaternion.Slerp(lastRotation, outgoingRotation, lerpFactor);
-                    break;
-                case BasisAxisLerp.LerpUnclamped:
-                    OutGoingData.rotation = Quaternion.LerpUnclamped(lastRotation, outgoingRotation, lerpFactor);
-                    break;
-                case BasisAxisLerp.SphericalLerpUnclamped:
-                    OutGoingData.rotation = Quaternion.SlerpUnclamped(lastRotation, outgoingRotation, lerpFactor);
-                    break;
-            }
-        }
-        [BurstCompile]
-        private void ApplyLerpToVector(float DeltaTime)
-        {
-            switch (PositionControl.Lerp)
-            {
-                case BasisVectorLerp.None:
-                    break;
-                case BasisVectorLerp.Lerp:
-                    OutGoingData.position = Vector3.Lerp(LastRunData.position, OutGoingData.position, PositionControl.LerpAmount * DeltaTime);
-                    break;
-                case BasisVectorLerp.SphericalLerp:
-                    OutGoingData.position = Vector3.Slerp(LastRunData.position, OutGoingData.position, PositionControl.LerpAmount * DeltaTime);
-                    break;
-                case BasisVectorLerp.LerpUnclamped:
-                    OutGoingData.position = Vector3.LerpUnclamped(LastRunData.position, OutGoingData.position, PositionControl.LerpAmount * DeltaTime);
-                    break;
-                case BasisVectorLerp.SphericalLerpUnclamped:
-                    OutGoingData.position = Vector3.SlerpUnclamped(LastRunData.position, OutGoingData.position, PositionControl.LerpAmount * DeltaTime);
-                    break;
-            }
+            OutgoingWorldData.position = position;
+            OutgoingWorldData.rotation = Rotation;
         }
     }
 }

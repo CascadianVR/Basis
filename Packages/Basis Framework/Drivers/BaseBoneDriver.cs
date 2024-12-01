@@ -4,10 +4,10 @@ using System;
 using UnityEngine;
 using Basis.Scripts.TransformBinders.BoneControl;
 using Basis.Scripts.Avatar;
-using Basis.Scripts.Common.Enums;
 using Basis.Scripts.BasisSdk.Helpers;
 using Basis.Scripts.BasisSdk.Players;
-using Gizmos = Popcron.Gizmos;
+using Unity.Mathematics;
+using System.Data;
 
 namespace Basis.Scripts.Drivers
 {
@@ -25,37 +25,43 @@ namespace Basis.Scripts.Drivers
         public delegate void SimulationHandler();
         public event SimulationHandler OnSimulate;
         public event SimulationHandler OnPostSimulate;
-        public event SimulationHandler ReadyToRead;
+        public OrderedDelegate ReadyToRead = new OrderedDelegate();
+
+        public Quaternion QatCalibrationHeading;
+        public Vector3 CalibrationHeading;
+        public float CalibrationHeadingY;
         /// <summary>
         /// call this after updating the bone data
         /// </summary>
         public void Simulate()
         {
             // sequence all other devices to run at the same time
-            OnSimulate?.Invoke();
-            //make sure to update time only after we invoke (its going to take time)
             ProvidedTime = Time.timeAsDouble;
             DeltaTime = Time.deltaTime;
+            if (float.IsNaN(DeltaTime) || DeltaTime <= 0f)
+            {
+                DeltaTime = 0f;
+                return; // Skip simulation if DeltaTime is invalid or zero
+            }
+
+            OnSimulate?.Invoke();
             for (int Index = 0; Index < ControlsLength; Index++)
             {
-                Controls[Index].ComputeMovement(ProvidedTime, DeltaTime);
+                Controls[Index].ComputeMovement(DeltaTime);
             }
             OnPostSimulate?.Invoke();
         }
         public void SimulateWithoutLerp()
         {
             // sequence all other devices to run at the same time
-            OnSimulate?.Invoke();
-            //make sure to update time only after we invoke (its going to take time)
             ProvidedTime = Time.timeAsDouble;
             DeltaTime = Time.deltaTime;
+            OnSimulate?.Invoke();
             for (int Index = 0; Index < ControlsLength; Index++)
             {
                 Controls[Index].LastRunData.position = Controls[Index].OutGoingData.position;
                 Controls[Index].LastRunData.rotation = Controls[Index].OutGoingData.rotation;
-                Controls[Index].LastWorldData.position = Controls[Index].OutgoingWorldData.position;
-                Controls[Index].LastWorldData.rotation = Controls[Index].OutgoingWorldData.rotation;
-                Controls[Index].ComputeMovement(ProvidedTime, DeltaTime);
+                Controls[Index].ComputeMovement(DeltaTime);
             }
             OnPostSimulate?.Invoke();
         }
@@ -66,6 +72,13 @@ namespace Basis.Scripts.Drivers
                 Controls[Index].ApplyMovement();
             }
             ReadyToRead?.Invoke();
+            if (BasisGizmoManager.UseGizmos)
+            {
+                for (int Index = 0; Index < ControlsLength; Index++)
+                {
+                    DrawGizmos(Controls[Index]);
+                }
+            }
         }
         public void SimulateAndApply()
         {
@@ -77,15 +90,16 @@ namespace Basis.Scripts.Drivers
             SimulateWithoutLerp();
             ApplyMovement();
         }
-        public void CalibrateOffsets()
+        public void CalculateHeading()
         {
-            for (int Index = 0; Index < ControlsLength; Index++)
+            if (FindBone(out BasisBoneControl Head, BasisBoneTrackedRole.Head))
             {
-                if (trackedRoles[Index] != BasisBoneTrackedRole.Head)
-                {
-                    Controls[Index].SetOffset();
-                }
-
+                CalibrationHeadingY = Head.BoneTransform.localRotation.eulerAngles.y;
+                CalibrationHeading = new Vector3(0, CalibrationHeadingY, 0);
+                QatCalibrationHeading = Quaternion.Euler(CalibrationHeading);
+                Debug.DrawLine(Head.BoneTransform.position, Head.BoneTransform.position + (QatCalibrationHeading * new Vector3(0, 0, 1)), Color.black, 5f);
+                //  Head.BoneModelTransform.position = Head.BoneTransform.position;
+                //   Head.BoneModelTransform.rotation = Head.BoneTransform.rotation;
             }
         }
         public void RemoveAllListeners()
@@ -94,13 +108,6 @@ namespace Basis.Scripts.Drivers
             {
                 Controls[Index].OnHasRigChanged.RemoveAllListeners();
                 Controls[Index].WeightsChanged.RemoveAllListeners();
-            }
-        }
-        public void ResetBoneModel()
-        {
-            for (int Index = 0; Index < ControlsLength; Index++)
-            {
-                Controls[Index].BoneModelTransform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
             }
         }
         public void AddRange(BasisBoneControl[] newControls, BasisBoneTrackedRole[] newRoles)
@@ -135,34 +142,101 @@ namespace Basis.Scripts.Drivers
             Role = BasisBoneTrackedRole.CenterEye;
             return false;
         }
-        public void CreateInitialArrays(Transform Parent)
+        public void CreateInitialArrays(Transform Parent, bool IsLocal)
         {
             trackedRoles = new BasisBoneTrackedRole[] { };
             Controls = new BasisBoneControl[] { };
-            int Length = Enum.GetValues(typeof(BasisBoneTrackedRole)).Length;
+            int Length;
+            if (IsLocal)
+            {
+                 Length = Enum.GetValues(typeof(BasisBoneTrackedRole)).Length;
+            }
+            else
+            {
+                 Length = 6;
+            }
             Color[] Colors = GenerateRainbowColors(Length);
             List<BasisBoneControl> newControls = new List<BasisBoneControl>();
             List<BasisBoneTrackedRole> Roles = new List<BasisBoneTrackedRole>();
             for (int Index = 0; Index < Length; Index++)
             {
-                BasisBoneTrackedRole role = (BasisBoneTrackedRole)Index;
-                BasisBoneControl Control = new BasisBoneControl();
-                GameObject TrackedBone = new GameObject(role.ToString());
-                TrackedBone.transform.parent = Parent;
-                GameObject BoneModelOffset = new GameObject(role.ToString() + "_AvatarRotationOffset");
-                BoneModelOffset.transform.parent = TrackedBone.transform;
-                Control.BoneTransform = TrackedBone.transform;
-                Control.BoneModelTransform = BoneModelOffset.transform;
-                Control.BoneModelTransform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-                Control.HasBone = true;
-                Control.GeneralLocation = BasisAvatarIKStageCalibration.FindGeneralLocation(role);
-                Control.Initialize();
-                FillOutBasicInformation(Control, role.ToString(), Colors[Index]);
+                SetupRole(Index, Parent, Colors[Index],out BasisBoneControl Control,out BasisBoneTrackedRole Role);
                 newControls.Add(Control);
-                Roles.Add(role);
+                Roles.Add(Role);
+            }
+            if(IsLocal == false)
+            {
+                SetupRole(22, Parent,Color.blue, out BasisBoneControl Control, out BasisBoneTrackedRole Role);
+                newControls.Add(Control);
+                Roles.Add(Role);
             }
             AddRange(newControls.ToArray(), Roles.ToArray());
             HasControls = true;
+            InitalzeGizmos();
+        }
+        public void SetupRole(int Index,Transform Parent, Color Color,out BasisBoneControl BasisBoneControl, out BasisBoneTrackedRole role)
+        {
+            role = (BasisBoneTrackedRole)Index;
+            BasisBoneControl = new BasisBoneControl();
+            GameObject TrackedBone = new GameObject(role.ToString());
+            TrackedBone.transform.parent = Parent;
+            BasisBoneControl.BoneTransform = TrackedBone.transform;
+            BasisBoneControl.HasBone = true;
+            BasisBoneControl.GeneralLocation = BasisAvatarIKStageCalibration.FindGeneralLocation(role);
+            BasisBoneControl.Initialize();
+            FillOutBasicInformation(BasisBoneControl, role.ToString(), Color);
+        }
+        public void InitalzeGizmos()
+        {
+           BasisGizmoManager.OnUseGizmosChanged += UpdatGizmoUsage;
+        }
+        public void DeInitalzeGizmos()
+        {
+           BasisGizmoManager.OnUseGizmosChanged -= UpdatGizmoUsage;
+        }
+        public void UpdatGizmoUsage(bool State)
+        {
+            Debug.Log("Running Bone Driver Gizmos");
+           // Debug.Log("updating State!");
+            for (int Index = 0; Index < ControlsLength; Index++)
+            {
+                BasisBoneControl Control = Controls[Index];
+                BasisBoneTrackedRole Role = trackedRoles[Index];
+                if (State)
+                {
+                    if(Role == BasisBoneTrackedRole.CenterEye)
+                    {
+                        continue;
+                    }
+                    Vector3 BonePosition = Control.OutgoingWorldData.position;
+                    if (BasisBoneTrackedRoleCommonCheck.CheckIfRightHand(Role) || BasisBoneTrackedRoleCommonCheck.CheckIfLeftHand(Role))
+                    {
+                        if (BasisGizmoManager.CreateSphereGizmo(out Control.GizmoReference, BonePosition, HandGizmoSize * BasisLocalPlayer.Instance.EyeRatioAvatarToAvatarDefaultScale, Control.Color))
+                        {
+                            Control.HasGizmo = true;
+                        }
+                    }
+                    else
+                    {
+                        if (Control.TargetControl.HasTarget)
+                        {
+                            if (BasisGizmoManager.CreateLineGizmo(out Control.TargetControl.LineDrawIndex, BonePosition, Control.TargetControl.Target.OutgoingWorldData.position, 0.03f, Control.Color))
+                            {
+                                Control.TargetControl.HasLineDraw = true;
+                            }
+                        }
+                        if (BasisGizmoManager.CreateSphereGizmo(out Control.GizmoReference, BonePosition, DefaultGizmoSize * BasisLocalPlayer.Instance.EyeRatioAvatarToAvatarDefaultScale, Control.Color))
+                        {
+                            Control.HasGizmo = true;
+                        }
+                    }
+                }
+                else
+                {
+                    Control.HasGizmo = false;
+                    Control.TposeHasGizmo = false;
+                }
+            }
         }
         public void FillOutBasicInformation(BasisBoneControl Control, string Name, Color Color)
         {
@@ -181,43 +255,21 @@ namespace Basis.Scripts.Drivers
 
             return rainbowColors;
         }
-        public void CreateRotationalLock(BasisBoneControl addToBone, BasisBoneControl lockToBone, BasisClampAxis axisLock, BasisClampData clampData, float maxClamp, BasisAxisLerp axisLerp, float lerpAmount, Quaternion offset, BasisTargetController targetController, bool useAngle, float angleBeforeMove)
+        public void CreateRotationalLock(BasisBoneControl addToBone, BasisBoneControl target, float lerpAmount, float positional = 40)
         {
-            BasisRotationalControl rotation = new BasisRotationalControl
-            {
-                ClampableAxis = axisLock,
-                Target = lockToBone,
-                ClampSize = maxClamp,
-                ClampStats = clampData,
-                Lerp = axisLerp,
-                LerpAmountNormal = lerpAmount,
-                LerpAmountFastMovement = lerpAmount * 4,
-                Offset = offset,
-                TaretInterpreter = targetController,
-                AngleBeforeMove = angleBeforeMove,
-                UseAngle = useAngle,
-                AngleBeforeSame = 1f,
-                AngleBeforeSpeedup = 25f,
-                ResetAfterTime = 1,
-                HasActiveTimer = false,
-            };
-            addToBone.RotationControl = rotation;
-        }
-        public void CreatePositionalLock(BasisBoneControl Bone, BasisBoneControl Target, BasisTargetController BasisTargetController = BasisTargetController.TargetDirectional, float Positional = 40, BasisVectorLerp BasisVectorLerp = BasisVectorLerp.Lerp)
-        {
-            BasisPositionControl Position = new BasisPositionControl
-            {
-                Lerp = BasisVectorLerp,
-                TaretInterpreter = BasisTargetController,
-                Offset = Bone.TposeLocal.position - Target.TposeLocal.position,
-                Target = Target,
-                LerpAmount = Positional
-            };
-            Bone.PositionControl = Position;
+            addToBone.TargetControl.Target = target;
+            addToBone.TargetControl.LerpAmountNormal = lerpAmount;
+            addToBone.TargetControl.LerpAmountFastMovement = lerpAmount * 4;
+            addToBone.TargetControl.AngleBeforeSpeedup = 25f;
+            addToBone.TargetControl.HasRotationalTarget = target != null;
+            addToBone.TargetControl.Offset = addToBone.TposeLocal.position - target.TposeLocal.position;
+            addToBone.TargetControl.Target = target;
+            addToBone.TargetControl.LerpAmount = positional;
+            addToBone.TargetControl.HasTarget = target != null;
         }
         public static Vector3 ConvertToAvatarSpaceInital(Animator animator, Vector3 WorldSpace, float AvatarHeightOffset)// out Vector3 FloorPosition
         {
-            if (BasisHelpers.TryGetFloor(animator, out Vector3 Bottom))
+            if (BasisHelpers.TryGetFloor(animator, out float3 Bottom))
             {
                 //FloorPosition = Bottom;
                 return BasisHelpers.ConvertToLocalSpace(WorldSpace + new Vector3(0f, AvatarHeightOffset, 0f), Bottom);
@@ -235,17 +287,6 @@ namespace Basis.Scripts.Drivers
         }
         public static float DefaultGizmoSize = 0.05f;
         public static float HandGizmoSize = 0.015f;
-        public void OnRenderObject()
-        {
-            if (HasControls && Gizmos.Enabled)
-            {
-                for (int Index = 0; Index < ControlsLength; Index++)
-                {
-                    BasisBoneControl Control = Controls[Index];
-                    DrawGizmos(Control);
-                }
-            }
-        }
         public void DrawGizmos(BasisBoneControl Control)
         {
             if (Control.Cullable)
@@ -255,29 +296,100 @@ namespace Basis.Scripts.Drivers
             if (Control.HasBone)
             {
                 Vector3 BonePosition = Control.OutgoingWorldData.position;
-                if (Control.PositionControl.TaretInterpreter != BasisTargetController.None)
+                if (Control.TargetControl.HasTarget)
                 {
-                    Gizmos.Line(BonePosition, Control.PositionControl.Target.OutgoingWorldData.position, Control.Color);
-                }
-                if (BasisLocalPlayer.Instance.LocalBoneDriver.FindTrackedRole(Control, out BasisBoneTrackedRole Frole))
-                {
-                    if (BasisBoneTrackedRoleCommonCheck.CheckIfRightHand(Frole) || BasisBoneTrackedRoleCommonCheck.CheckIfLeftHand(Frole))
+                    if (Control.TargetControl.HasLineDraw)
                     {
-                        Gizmos.Sphere(BonePosition, HandGizmoSize * BasisLocalPlayer.Instance.EyeRatioAvatarToAvatarDefaultScale, Control.Color);
-                    }
-                    else
-                    {
-                        Gizmos.Sphere(BonePosition, DefaultGizmoSize * BasisLocalPlayer.Instance.EyeRatioAvatarToAvatarDefaultScale, Control.Color);
+                        BasisGizmoManager.UpdateLineGizmo(Control.TargetControl.LineDrawIndex, BonePosition, Control.TargetControl.Target.OutgoingWorldData.position);
                     }
                 }
-                if (BasisLocalPlayer.Instance.AvatarDriver.InTPose)
+                if (BasisLocalPlayer.Instance.LocalBoneDriver.FindTrackedRole(Control, out BasisBoneTrackedRole Role))
+                {
+                    if(Role == BasisBoneTrackedRole.CenterEye)
+                    {
+                        //ignoring center eye to stop you having issues in vr
+                        return;
+                    }
+                    if (Control.HasGizmo)
+                    {
+                        if (BasisGizmoManager.UpdateSphereGizmo(Control.GizmoReference, BonePosition) == false)
+                        {
+                            Control.HasGizmo = false;
+                        }
+                    }
+                }
+                if (BasisLocalPlayer.Instance.AvatarDriver.CurrentlyTposing)
                 {
                     if (BasisLocalPlayer.Instance.LocalBoneDriver.FindTrackedRole(Control, out BasisBoneTrackedRole role))
                     {
-                        Gizmos.Sphere(BonePosition, (BasisAvatarIKStageCalibration.MaxDistanceBeforeMax(role) / 2) * BasisLocalPlayer.Instance.EyeRatioAvatarToAvatarDefaultScale, Control.Color);
+                        if (Role == BasisBoneTrackedRole.CenterEye)
+                        {
+                            //ignoring center eye to stop you having issues in vr
+                            return;
+                        }
+                        if (BasisBoneTrackedRoleCommonCheck.CheckItsFBTracker(role))
+                        {
+                            if (Control.TposeHasGizmo)
+                            {
+                                if (BasisGizmoManager.UpdateSphereGizmo(Control.TposeGizmoReference, BonePosition) == false)
+                                {
+                                    Control.TposeHasGizmo = false;
+                                }
+                            }
+                            else
+                            {
+                                if (BasisGizmoManager.CreateSphereGizmo(out Control.TposeGizmoReference, BonePosition, BasisAvatarIKStageCalibration.MaxDistanceBeforeMax(role) * BasisLocalPlayer.Instance.EyeRatioAvatarToAvatarDefaultScale, Control.Color))
+                                {
+                                    Control.TposeHasGizmo = true;
+                                }
+                            }
+                        }
                     }
                 }
             }
+        }
+        public class OrderedDelegate
+        {
+            private List<KeyValuePair<int, Action>> actions = new List<KeyValuePair<int, Action>>();
+            private bool isSorted = true;
+
+            // Add an action with a priority level.
+            public void AddAction(int priority, Action action)
+            {
+                actions.Add(new KeyValuePair<int, Action>(priority, action));
+                isSorted = false;  // Mark as unsorted to avoid sorting on every add.
+            }
+
+            // Remove a specific action from a given priority.
+            public void RemoveAction(int priority, Action action)
+            {
+                for (int i = actions.Count - 1; i >= 0; i--)
+                {
+                    if (actions[i].Key == priority && actions[i].Value == action)
+                    {
+                        actions.RemoveAt(i);
+                        break;
+                    }
+                }
+            }
+
+            // Invoke all actions in order of priority.
+            public void Invoke()
+            {
+                // Sort only if we have added new items since the last invoke.
+                if (!isSorted)
+                {
+                    actions.Sort((a, b) => a.Key.CompareTo(b.Key));
+                    isSorted = true;
+                }
+
+                // Use a for loop instead of foreach to avoid allocations.
+                for (int i = 0; i < actions.Count; i++)
+                {
+                    actions[i].Value?.Invoke();
+                }
+            }
+
         }
     }
 }

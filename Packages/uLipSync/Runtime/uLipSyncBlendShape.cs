@@ -17,8 +17,6 @@ namespace uLipSync
             public float weight { get; set; } = 0f;
             public float weightVelocity { get; set; } = 0f;
         }
-
-        public UpdateMethod updateMethod = UpdateMethod.LateUpdate;
         public SkinnedMeshRenderer skinnedMeshRenderer;
         public List<BlendShapeInfo> blendShapes = new List<BlendShapeInfo>();
         public float maxBlendShapeValue = 100f;
@@ -49,22 +47,10 @@ namespace uLipSync
         {
             _info = info;
             _lipSyncUpdated = true;
-            if (updateMethod == UpdateMethod.LipSyncUpdateEvent)
-            {
-                UpdateLipSync();
-                OnApplyBlendShapes();
-            }
+            UpdateLipSync();
+            OnApplyBlendShapes();
         }
-        public void Poll()
-        {
-#if UNITY_EDITOR
-            if (_isAnimationBaking) return;
-#endif
-            if (updateMethod == UpdateMethod.LateUpdate)
-            {
-                OnApplyBlendShapes();
-            }
-        }
+
         float SmoothDamp(float value, float target, ref float velocity)
         {
 #if UNITY_EDITOR
@@ -92,81 +78,79 @@ namespace uLipSync
         {
             float sum = 0f;
             var ratios = _info.phonemeRatios;
+            int count = blendShapes.Count;
 
-            foreach (var bs in blendShapes)
+            // First pass: Compute weights and accumulate the sum
+            for (int i = 0; i < count; i++)
             {
+                BlendShapeInfo bs = blendShapes[i];
                 float targetWeight = 0f;
-                if (usePhonemeBlend)
+
+                if (usePhonemeBlend && ratios != null && !string.IsNullOrEmpty(bs.phoneme))
                 {
-                    if (ratios != null && !string.IsNullOrEmpty(bs.phoneme))
-                    {
-                        ratios.TryGetValue(bs.phoneme, out targetWeight);
-                    }
+                    ratios.TryGetValue(bs.phoneme, out targetWeight);
                 }
                 else
                 {
                     targetWeight = (bs.phoneme == _info.phoneme) ? 1f : 0f;
                 }
+
                 float weightVel = bs.weightVelocity;
                 bs.weight = SmoothDamp(bs.weight, targetWeight, ref weightVel);
                 bs.weightVelocity = weightVel;
                 sum += bs.weight;
             }
 
-            foreach (var bs in blendShapes)
+            // Second pass: Normalize weights if needed
+            if (sum > 0f)
             {
-                bs.weight = sum > 0f ? bs.weight / sum : 0f;
+                float invSum = 1f / sum; // Precompute reciprocal for performance
+                for (int i = 0; i < count; i++)
+                {
+                    blendShapes[i].weight *= invSum;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    blendShapes[i].weight = 0f;
+                }
             }
         }
 
         public void ApplyBlendShapes()
         {
-            if (updateMethod == UpdateMethod.External)
-            {
-                OnApplyBlendShapes();
-            }
+            OnApplyBlendShapes();
         }
 
         protected virtual void OnApplyBlendShapes()
         {
             if (!skinnedMeshRenderer) return;
 
+            // Iterate through blendShapes once and set blend shape weights
             foreach (var bs in blendShapes)
             {
                 if (bs.index < 0) continue;
-                skinnedMeshRenderer.SetBlendShapeWeight(bs.index, 0f);
-            }
 
-            foreach (var bs in blendShapes)
-            {
-                if (bs.index < 0) continue;
-                float weight = skinnedMeshRenderer.GetBlendShapeWeight(bs.index);
-                weight += bs.weight * bs.maxWeight * volume * maxBlendShapeValue;
+                // Reset the blend shape weight to zero
+                skinnedMeshRenderer.SetBlendShapeWeight(bs.index, 0f);
+
+                // Calculate and apply the new weight
+                float weight = bs.weight * bs.maxWeight * volume * maxBlendShapeValue;
                 skinnedMeshRenderer.SetBlendShapeWeight(bs.index, weight);
             }
         }
 
         public BlendShapeInfo GetBlendShapeInfo(string phoneme)
         {
-            foreach (var info in blendShapes)
+            foreach (BlendShapeInfo info in blendShapes)
             {
                 if (info.phoneme == phoneme) return info;
             }
             return null;
         }
 
-        public BlendShapeInfo AddBlendShape(string phoneme, string blendShape)
-        {
-            var bs = GetBlendShapeInfo(phoneme);
-            if (bs == null) bs = new BlendShapeInfo() { phoneme = phoneme };
-
-            blendShapes.Add(bs);
-
-            if (!skinnedMeshRenderer) return bs;
-            bs.index = Util.GetBlendShapeIndex(skinnedMeshRenderer, blendShape);
-
-            return bs;
-        }
         public BlendShapeInfo AddBlendShape(string phoneme, int blendShape)
         {
             var bs = GetBlendShapeInfo(phoneme);
@@ -203,8 +187,9 @@ namespace uLipSync
         {
             var weights = new List<float>();
 
-            foreach (var bs in blendShapes)
+            for (int Index = 0; Index < blendShapes.Count; Index++)
             {
+                BlendShapeInfo bs = blendShapes[Index];
                 if (bs.index < 0) continue;
                 var weight = bs.weight * bs.maxWeight * volume * maxBlendShapeValue;
                 weights.Add(weight);
@@ -237,4 +222,3 @@ namespace uLipSync
     }
 
 }
-

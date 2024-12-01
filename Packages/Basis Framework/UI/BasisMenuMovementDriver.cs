@@ -38,7 +38,7 @@ namespace Basis.Scripts.UI.UI_Panels
                     hasGeneratedAction = true;
                 }
             }
-            LocalPlayer.LocalBoneDriver.ReadyToRead += UpdateUI;
+            LocalPlayer.LocalBoneDriver.ReadyToRead.AddAction(105, UpdateUI);
         }
         private void OnDisable()
         {
@@ -51,7 +51,7 @@ namespace Basis.Scripts.UI.UI_Panels
             BasisLocalPlayer.Instance.OnLocalAvatarChanged -= UpdateDelayedSetUI;
             BasisLocalPlayer.Instance.OnPlayersHeightChanged -= UpdateDelayedSetUI;
 
-            LocalPlayer.LocalBoneDriver.ReadyToRead -= UpdateUI;
+            LocalPlayer.LocalBoneDriver.ReadyToRead.RemoveAction(101, UpdateUI);
         }
         #endregion
         #region Player Change Callbacks
@@ -125,7 +125,7 @@ namespace Basis.Scripts.UI.UI_Panels
                     if (!BasisDeviceManagement.IsUserInDesktop())
                     {
                         // Get hand bone model's position and rotation
-                        hand.BoneModelTransform.GetPositionAndRotation(out position, out rotation);
+                        hand.BoneTransform.GetPositionAndRotation(out position, out rotation);
 
                         // Set new position and rotation
                         transform.SetPositionAndRotation(position + (menuPosOffset * LocalPlayer.EyeRatioPlayerToDefaultScale), rotation * Quaternion.Euler(menuRotOffset));

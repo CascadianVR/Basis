@@ -13,8 +13,7 @@ The Social VR Framework</br>
      
  ## About Basis
 
-As a framework, Basis provides you with all the necessary tools to create your own Social VR Platform to use as a Ready-To-Use Foundation to be built upon.
-This allows you to focus on your vision, without needing to do any heavy lifting to get going. Basis is designed with great care to remove any barrier that previously made VR projects notoriously hard to set up.
+[Basis Philosophy](https://github.com/dooly123/Basis/blob/main/PHILOSOPHY.md) <- read our Philosophy here!
 
 We are a MIT-Licensed Open-Source project with a focus on open development and full access to any optional modification desired or required.
 
@@ -45,7 +44,7 @@ Please help shape the future of Basis and leave your mark on its foundation.
 
  ## Installation
  
-This project is currently using Unity 6 (6000.0.20f1)
+This project is currently using Unity 6 (6000.0.28f1)
 Other Unity versions may work but will require changes and adaptations.
 Currently, only OPENXR and SteamVR are supported.
 
@@ -84,6 +83,7 @@ This would not be possible without the following:
 - [Settings Manager](https://assetstore.unity.com/packages/tools/gui/settings-manager-158458)
 - [Steam Audio](https://github.com/ValveSoftware/steam-audio)
 - [Kevin Iglesias Animations](https://www.keviniglesias.com/)
+- [audiolink](https://github.com/llealloo/audiolink/)
 - [Unity Starter Assets - ThirdPerson](https://assetstore.unity.com/packages/essentials/starter-assets-thirdperson-updates-in-new-charactercontroller-pa-196526)
 - [Aurellia](https://github.com/CascadianVR) Assets\third_party\Avatar\Aurellia\LICENSE
 - [YUN](https://github.com/yewnyx) Assets\third_party\Avatar\Yun\LICENSE
@@ -91,8 +91,8 @@ This would not be possible without the following:
 - [lilToon](https://github.com/lilxyzw/lilToon)
 - [RNNoise](https://github.com/xiph/rnnoise?tab=BSD-3-Clause-1-ov-file)
 - [RNNoise.Net](https://github.com/Yellow-Dog-Man/RNNoise.Net)
-- [popcorn gizmos](https://github.com/popcron/gizmos)
 - [unity](https://unity.com/)
+- [ionic icons](https://github.com/ionic-team/ionicons?ref=svgrepo.com)
 
 
 ## Third-Party Code and Trademarks

@@ -1,4 +1,5 @@
 using BasisSerializer.OdinSerializer;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -25,6 +26,11 @@ public static class BasisBasisBundleInformationHandler
             File.Delete(filePath);
         }
         ValidateBasisBundleInformation(ref BasisBundleInformation);
+        if(BasisBundleInformation.HasError)
+        {
+            new Exception("BasisBundleInformation Had Error!");
+            return null;
+        }
         // Serialize and save the BasisBundleInformation to disk
         await SaveBasisBundleInformation(BasisBundleInformation, filePath, BuildSettings, Password);
         return BasisBundleInformation;
@@ -63,7 +69,7 @@ public static class BasisBasisBundleInformationHandler
             Debug.LogError("AssetToLoadName is not assigned.");
         }
     }
-    private static BasisProgressReport.ProgressReport Report;
+    private static BasisProgressReport Report = new BasisProgressReport();
     // Function to serialize and save BasisBundleInformation to disk
     private static async Task SaveBasisBundleInformation(BasisBundleInformation basisBundleInfo, string filePath, BasisAssetBundleObject BuildSettings, string password)
     {
@@ -79,10 +85,7 @@ public static class BasisBasisBundleInformationHandler
             {
                 VP = password
             };
-            await BasisEncryptionWrapper.EncryptFileAsync(BasisPassword, filePath, EncryptedPath, (progress) =>
-            {
-                Debug.Log($"Progress: {progress}%");
-            });
+            await BasisEncryptionWrapper.EncryptFileAsync(BasisPassword, filePath, EncryptedPath, Report);
 
             // Delete the bundle file if it exists
             if (File.Exists(filePath))

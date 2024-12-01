@@ -1,24 +1,23 @@
 using Basis.Scripts.BasisSdk.Players;
 using Basis.Scripts.Drivers;
 using Basis.Scripts.TransformBinders.BoneControl;
+using Unity.Mathematics;
 using UnityEngine;
 using static Basis.Scripts.Drivers.BaseBoneDriver;
-using Gizmos = Popcron.Gizmos;
 namespace Basis.Scripts.BasisCharacterController
 {
     public class BasisCharacterController : MonoBehaviour
     {
         public CharacterController characterController;
-        public Vector3 bottomPoint;
+        public Vector3 bottomPointLocalspace;
         public Vector3 LastbottomPoint;
         public bool groundedPlayer;
-        [SerializeField] public float RunSpeed = 2f;
-        [SerializeField] public float playerSpeed = 1.5f;
+        [SerializeField] public float FastestRunSpeed = 4;
+        [SerializeField] public float SlowestPlayerSpeed = 0.5f;
         [SerializeField] public float gravityValue = -9.81f;
         [SerializeField] public float RaycastDistance = 0.2f;
         [SerializeField] public float MinimumColliderSize = 0.01f;
         [SerializeField] public Vector2 MovementVector;
-        [SerializeField] public bool Running;
         [SerializeField] public BasisLocalBoneDriver driver;
         [SerializeField] public BasisBoneControl Eye;
         [SerializeField] public BasisBoneControl Head;
@@ -43,7 +42,7 @@ namespace Basis.Scripts.BasisCharacterController
         {
             if (HasEvents)
             {
-                driver.ReadyToRead -= Simulate;
+               driver.ReadyToRead.RemoveAction(98,Simulate);
                 HasEvents = false;
             }
         }
@@ -57,7 +56,7 @@ namespace Basis.Scripts.BasisCharacterController
             characterController.skinWidth = 0.01f;
             if (HasEvents == false)
             {
-                driver.ReadyToRead += Simulate;
+                driver.ReadyToRead.AddAction(98, Simulate);
                 HasEvents = true;
             }
         }
@@ -79,27 +78,37 @@ namespace Basis.Scripts.BasisCharacterController
         }
         public void Simulate()
         {
+            LastbottomPoint = bottomPointLocalspace;
             CalculateCharacterSize();
             HandleMovement();
             GroundCheck();
 
             // Calculate the rotation amount for this frame
-            float rotationAmount = Rotation.x * RotationSpeed * Time.deltaTime;
+            float rotationAmount = Rotation.x * RotationSpeed * driver.DeltaTime;
 
-            // Get the current rotation of the player
-            Vector3 currentRotation = BasisLocalPlayer.Instance.transform.eulerAngles;
 
-            // Add the rotation amount to the current y-axis rotation and use modulo to keep it within 0-360 degrees
-            float newRotationY = (currentRotation.y + rotationAmount) % 360f;
-            this.transform.RotateAround(Eye.OutgoingWorldData.position, Vector3.up, rotationAmount);
+            transform.GetPositionAndRotation(out Vector3 CurrentPosition, out Quaternion CurrentRotation);
+            // Get the current rotation and position of the player
+            Vector3 pivot = Eye.OutgoingWorldData.position;
+            Vector3 upAxis = Vector3.up;
+
+            // Calculate direction from the pivot to the current position
+            Vector3 directionToPivot = CurrentPosition - pivot;
+
+            // Calculate rotation quaternion based on the rotation amount and axis
+            Quaternion rotation = Quaternion.AngleAxis(rotationAmount, upAxis);
+
+            // Apply rotation to the direction vector
+            Vector3 rotatedDirection = rotation * directionToPivot;
+
+            Vector3 FinalRotation = pivot + rotatedDirection;
+
+            transform.SetPositionAndRotation(FinalRotation, rotation * CurrentRotation);
+
+            float HeightOffset = (characterController.height / 2) - characterController.radius;
+            bottomPointLocalspace = FinalRotation + (characterController.center - new Vector3(0, HeightOffset, 0));
+
             ReadyToRead?.Invoke();
-        }
-        public void OnRenderObject()
-        {
-            if (Gizmos.Enabled)
-            {
-                Gizmos.Sphere(bottomPoint, characterController.radius, groundedPlayer ? Color.green : Color.red);
-            }
         }
         public void HandleJump()
         {
@@ -110,11 +119,6 @@ namespace Basis.Scripts.BasisCharacterController
         }
         public void GroundCheck()
         {
-            LastbottomPoint = bottomPoint;
-            Vector3 Position = characterController.transform.position;
-
-            float HeightOffset = (characterController.height / 2) - characterController.radius; //+ characterController.skinWidth;
-            bottomPoint = Position + (characterController.center - new Vector3(0, HeightOffset, 0));
             groundedPlayer = characterController.isGrounded;
             IsFalling = !groundedPlayer;
 
@@ -126,6 +130,7 @@ namespace Basis.Scripts.BasisCharacterController
 
             LastWasGrounded = groundedPlayer;
         }
+        public float CurrentSpeed;
         public void HandleMovement()
         {
             if (BlockMovement)
@@ -144,8 +149,12 @@ namespace Basis.Scripts.BasisCharacterController
 
             // Calculate horizontal movement direction
             Vector3 horizontalMoveDirection = new Vector3(MovementVector.x, 0, MovementVector.y).normalized;
-            float speed = Running ? RunSpeed : playerSpeed;
-            Vector3 totalMoveDirection = flattenedRotation * horizontalMoveDirection * speed * Time.deltaTime;
+
+            SpeedMultiplyer = math.abs(SpeedMultiplyer);
+            CurrentSpeed = math.lerp(SlowestPlayerSpeed,FastestRunSpeed,SpeedMultiplyer);
+            CurrentSpeed = math.clamp(CurrentSpeed, 0, FastestRunSpeed);
+
+            Vector3 totalMoveDirection = flattenedRotation * horizontalMoveDirection * CurrentSpeed * driver.DeltaTime;
 
             // Handle jumping and falling
             if (groundedPlayer && HasJumpAction)
@@ -155,7 +164,7 @@ namespace Basis.Scripts.BasisCharacterController
             }
             else
             {
-                currentVerticalSpeed += gravityValue * Time.deltaTime;
+                currentVerticalSpeed += gravityValue * driver.DeltaTime;
             }
 
             // Ensure we don't exceed maximum gravity value speed
@@ -163,15 +172,12 @@ namespace Basis.Scripts.BasisCharacterController
 
 
             HasJumpAction = false;
-            totalMoveDirection.y = currentVerticalSpeed * Time.deltaTime;
+            totalMoveDirection.y = currentVerticalSpeed * driver.DeltaTime;
 
             // Move character
             characterController.Move(totalMoveDirection);
         }
-        public void RunningToggle()
-        {
-            Running = !Running;
-        }
+        public float SpeedMultiplyer = 0.5f;
         public void CalculateCharacterSize()
         {
             eyeHeight = HasEye ? Eye.OutGoingData.position.y : 1.73f;

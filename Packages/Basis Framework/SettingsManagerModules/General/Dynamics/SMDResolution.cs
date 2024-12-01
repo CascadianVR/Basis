@@ -8,13 +8,13 @@ namespace BattlePhaze.SettingsManager.Intergrations
         public List<Resolution> AvailableResolution = new List<Resolution>();
         [SerializeField]
         public List<Resolution> SortedResolution = new List<Resolution>();
+        public string LastResolution;
         public override void ReceiveOption(SettingsMenuInput option, SettingsManager manager)
         {
             if (!NameReturn(0, option))
             {
                 return;
             }
-
             SettingsManagerDropDown.Clear(manager, option.OptionIndex);
             SortedResolution.Clear();
             option.SelectableValueList.Clear();
@@ -61,15 +61,17 @@ namespace BattlePhaze.SettingsManager.Intergrations
 
             if (selectedIndex != -1)
             {
-                SetResolution(SortedResolution[selectedIndex].width, SortedResolution[selectedIndex].height,
-                    option.OptionIndex, selectedIndex, manager);
+                if (LastResolution != option.SelectedValue)
+                {
+                    LastResolution = option.SelectedValue;
+                    SetResolution(SortedResolution[selectedIndex].width, SortedResolution[selectedIndex].height, option.OptionIndex, selectedIndex, manager);
+                }
             }
             else if (SortedResolution.Count != 0)
             {
                 selectedIndex = option.SelectableValueList.Count - 1;
                 option.SelectedValue = option.SelectableValueList[selectedIndex].RealValue;
-                SetResolution(SortedResolution[SortedResolution.Count - 1].width, SortedResolution[SortedResolution.Count - 1].height,
-                    option.OptionIndex, selectedIndex, manager);
+                SetResolution(SortedResolution[SortedResolution.Count - 1].width, SortedResolution[SortedResolution.Count - 1].height,option.OptionIndex, selectedIndex, manager);
             }
         }
         public void SetResolution(int Width, int Height, int OptionIndex, int SelectableValue, SettingsManager Manager)
@@ -78,6 +80,7 @@ namespace BattlePhaze.SettingsManager.Intergrations
 
             if (Screen.width != Width || Screen.height != Height)
             {
+                Debug.Log("setting res " + Screen.width + " now " + Width + " | " + Screen.height + " now" + Height);
                 Screen.SetResolution(Width, Height, Screen.fullScreenMode);
             }
         }

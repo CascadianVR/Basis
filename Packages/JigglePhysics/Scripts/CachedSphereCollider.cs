@@ -1,21 +1,9 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace JigglePhysics
 {
     public static class CachedSphereCollider
     {
-        // Define constants for the layers you want to include and exclude
-        public const int DefaultLayer = 0;  // Default layer index
-
-        // Layer mask for including just the default and player layers
-        public static readonly int IncludeDefaultPlayer = LayerMask.GetMask("Default");
-
-        // Layer mask for excluding everything but default
-        public static readonly int ExcludeDefaultPlayer = ~LayerMask.GetMask("Default");
-
-        // You can add more layer masks as needed for other layers
         private class DestroyListener : MonoBehaviour
         {
             void OnDestroy()
@@ -23,43 +11,42 @@ namespace JigglePhysics
                 _hasSphere = false;
             }
         }
-        private static int remainingBuilders = -1;
         private static bool _hasSphere = false;
         private static SphereCollider _sphereCollider;
-        private static readonly HashSet<MonoBehaviour> builders = new HashSet<MonoBehaviour>();
 
-        public static void AddBuilder(JiggleRigBuilder builder)
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void Init()
         {
-            builders.Add(builder);
-        }
-        public static void RemoveBuilder(JiggleRigBuilder builder)
-        {
-            builders.Remove(builder);
-        }
-        public static void StartPass()
-        {
-            /*
-            if ((remainingBuilders <= -1 || remainingBuilders >= builders.Count) && TryGet(out SphereCollider collider))
+            if (_sphereCollider != null)
             {
-                collider.includeLayers = 0;//include just default player 
-                collider.excludeLayers = -1;//everything but default
-                remainingBuilders = 0;
+                if (Application.isPlaying)
+                {
+                    Object.Destroy(_sphereCollider);
+                }
+                else
+                {
+                    Object.DestroyImmediate(_sphereCollider);
+                }
             }
-            */
+            _hasSphere = false;
+            _sphereCollider = null;
         }
-        public static void FinishedPass()
+        public static void EnableSphereCollider()
         {
-            /*
-            remainingBuilders++;
-            if (remainingBuilders >= builders.Count && TryGet(out SphereCollider collider))
+            if (TryGet(out SphereCollider collider))
             {
-                collider.includeLayers = -1;//everything but default
-                collider.excludeLayers = 0;//include just default player
-                remainingBuilders = -1;
+                collider.enabled = true;
             }
-            */
         }
-        /*
+
+        public static void DisableSphereCollider()
+        {
+            if (TryGet(out SphereCollider collider))
+            {
+                collider.enabled = false;
+            }
+        }
+
         public static bool TryGet(out SphereCollider collider)
         {
             if (_hasSphere)
@@ -67,43 +54,34 @@ namespace JigglePhysics
                 collider = _sphereCollider;
                 return true;
             }
+
+            GameObject obj = null;
             try
             {
-                var obj = new GameObject("JiggleBoneSphereCollider", typeof(SphereCollider), typeof(DestroyListener))
-                {
-                    hideFlags = HideFlags.HideAndDontSave
-                };
-                if (Application.isPlaying)
-                {
-                    UnityEngine.Object.DontDestroyOnLoad(obj);
-                }
+                obj = new GameObject("JiggleBoneSphereCollider", typeof(SphereCollider), typeof(DestroyListener));
+                Object.DontDestroyOnLoad(obj);
 
-                if (obj.TryGetComponent<SphereCollider>(out _sphereCollider))
+                if (!obj.TryGetComponent(out _sphereCollider))
                 {
-                    collider = _sphereCollider;
-                    //collider.enabled = false;
-                    _hasSphere = true;
-                    return true;
+                    throw new UnityException("This should never happen...");
                 }
-                else
-                {
-                    new Exception("Missing Sphere Collider");
-                    collider = null;
-                    return false;
-                }
+                collider = _sphereCollider;
+                collider.enabled = false;
+                _hasSphere = true;
+                return true;
             }
             catch
             {
                 // Something went wrong! Try to clean up and try again next frame. Better throwing an expensive exception than spawning spheres every frame.
-                if (_sphereCollider != null)
+                if (obj)
                 {
                     if (Application.isPlaying)
                     {
-                        UnityEngine.Object.Destroy(_sphereCollider.gameObject);
+                        Object.Destroy(obj);
                     }
                     else
                     {
-                        UnityEngine.Object.DestroyImmediate(_sphereCollider.gameObject);
+                        Object.DestroyImmediate(obj);
                     }
                 }
                 _hasSphere = false;
@@ -111,6 +89,5 @@ namespace JigglePhysics
                 throw;
             }
         }
-        */
     }
 }

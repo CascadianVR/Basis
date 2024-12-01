@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using Basis.Scripts.BasisSdk.Helpers;
+using static UnityEngine.Analytics.IAnalytic;
 namespace Basis.Scripts.Drivers
 {
     public class BasisVisemeDriver : MonoBehaviour
@@ -19,7 +20,7 @@ namespace Basis.Scripts.Drivers
         public uLipSync.uLipSync uLipSync;
         public uLipSyncBlendShape uLipSyncBlendShape;
         public List<PhonemeBlendShapeInfo> phonemeBlendShapeTable = new List<PhonemeBlendShapeInfo>();
-        public uLipSync.Profile profile;
+        private uLipSync.Profile profile;
         public bool FirstTime = false;
         [System.Serializable]
         public class PhonemeBlendShapeInfo
@@ -56,22 +57,21 @@ namespace Basis.Scripts.Drivers
             phonemeBlendShapeTable.Clear();
             if (uLipSync.profile == null)
             {
-                if (profile == null)
+                if (Profile == null)
                 {
                     // Start loading the ScriptableObject from Addressables using the addressable key
                     AsyncOperationHandle<uLipSync.Profile> handle = Addressables.LoadAssetAsync<uLipSync.Profile>("Packages/com.hecomi.ulipsync/Assets/Profiles/uLipSync-Profile-Sample.asset");
 
                     // Wait for the operation to complete
                     handle.WaitForCompletion();
-                    profile = handle.Result;
+                    Profile = handle.Result;
                 }
-                uLipSync.profile = profile;
+                uLipSync.profile = Profile;
             }
 
             uLipSyncBlendShape = BasisHelpers.GetOrAddComponent<uLipSyncBlendShape>(this.gameObject);
-
+            uLipSyncBlendShape.usePhonemeBlend = true;
             uLipSyncBlendShape.skinnedMeshRenderer = Avatar.FaceVisemeMesh;
-            uLipSyncBlendShape.updateMethod = UpdateMethod.External;
             BlendShapeCount = Avatar.FaceVisemeMovement.Length;
             HasViseme = new bool[BlendShapeCount];
             for (int Index = 0; Index < BlendShapeCount; Index++)
@@ -159,25 +159,60 @@ namespace Basis.Scripts.Drivers
                 PhonemeBlendShapeInfo info = phonemeBlendShapeTable[Index];
                 uLipSyncBlendShape.AddBlendShape(info.phoneme, info.blendShape);
             }
-            uLipSyncBlendShape.updateMethod = UpdateMethod.LipSyncUpdateEvent;
             if (FirstTime)
             {
                 uLipSync.onLipSyncUpdate.AddListener(uLipSyncBlendShape.OnLipSyncUpdate);
             }
+            if (HasRendererCheckWiredUp == false)
+            {
+                if (Player != null && Player.FaceRenderer != null)
+                {
+                    Debug.Log("Wired up Renderer Check For Blinking");
+                    Player.FaceRenderer.Check += UpdateFaceVisibility;
+                    UpdateFaceVisibility(Player.FaceisVisible);
+                    HasRendererCheckWiredUp = true;
+                }
+            }
             WasSuccessful = true;
             return true;
         }
+        public bool HasRendererCheckWiredUp = false;
+        public bool uLipSyncEnabledState = true;
+
+        public Profile Profile { get => profile; set => profile = value; }
+
+        private void UpdateFaceVisibility(bool State)
+        {
+            uLipSyncEnabledState = State;
+        }
+        public void OnDestroy()
+        {
+            if (Player != null)
+            {
+                if (HasRendererCheckWiredUp && Player.FaceRenderer != null)
+                {
+                    Player.FaceRenderer.Check -= UpdateFaceVisibility;
+                }
+            }
+        }
         public void ProcessAudioSamples(float[] data)
         {
+            if (uLipSyncEnabledState == false)
+            {
+                return;
+            }
             if (WasSuccessful == false)
             {
                 return;
             }
-            if (Player.FaceisVisible == false)
-            {
-                return;
-            }
             uLipSync.OnDataReceived(data, 1);
+        }
+        public void Update()
+        {
+            if (WasSuccessful)
+            {
+                uLipSync.DoUpdate();
+            }
         }
     }
 }

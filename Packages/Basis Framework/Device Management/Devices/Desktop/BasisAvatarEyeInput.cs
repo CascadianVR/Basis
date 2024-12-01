@@ -2,10 +2,9 @@ using Basis.Scripts.BasisSdk.Helpers;
 using Basis.Scripts.BasisSdk.Players;
 using Basis.Scripts.Drivers;
 using Basis.Scripts.TransformBinders.BoneControl;
-using System.Threading.Tasks;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.LowLevel;
 namespace Basis.Scripts.Device_Management.Devices.Desktop
 {
     public class BasisAvatarEyeInput : BasisInput
@@ -14,39 +13,37 @@ namespace Basis.Scripts.Device_Management.Devices.Desktop
         public BasisLocalAvatarDriver AvatarDriver;
         public BasisLocalInputActions characterInputActions;
         public static BasisAvatarEyeInput Instance;
-        public float RangeOfMotionBeforeTurn = 13;
-        public float headDownwardForce = 0.003f;
-        public float headUpwardForce = 0.001f;
-        public float adjustment;
         public float crouchPercentage = 0.5f;
         public float rotationSpeed = 0.1f;
         public float rotationY;
         public float rotationX;
         public float minimumY = -80f;
         public float maximumY = 80f;
-        public float DelayedResponseForRotation = 0.6f;
+        [HideInInspector]
         public float FallBackHeight = 1.73f;
         public bool BlockCrouching;
         public float InjectedX = 0;
         public float InjectedZ = 0;
         public bool HasEyeEvents = false;
         public bool PauseLook = false;
-        public async Task Initalize(string ID = "Desktop Eye", string subSystems = "BasisDesktopManagement")
+        public void Initalize(string ID = "Desktop Eye", string subSystems = "BasisDesktopManagement")
         {
             Debug.Log("Initalizing Avatar Eye");
             if (BasisLocalPlayer.Instance.AvatarDriver != null)
             {
+                Debug.Log("Using Configured Height " + BasisLocalPlayer.Instance.PlayerEyeHeight);
                 LocalRawPosition = new Vector3(InjectedX, BasisLocalPlayer.Instance.PlayerEyeHeight, InjectedZ);
                 LocalRawRotation = Quaternion.identity;
             }
             else
             {
+                Debug.Log("Using Fallback Height " + FallBackHeight);
                 LocalRawPosition = new Vector3(InjectedX, FallBackHeight, InjectedZ);
                 LocalRawRotation = Quaternion.identity;
             }
             FinalPosition = LocalRawPosition;
             FinalRotation = LocalRawRotation;
-            await InitalizeTracking(ID, ID, subSystems, true, BasisBoneTrackedRole.CenterEye);
+            InitalizeTracking(ID, ID, subSystems, true, BasisBoneTrackedRole.CenterEye);
             if (BasisHelpers.CheckInstance(Instance))
             {
                 Instance = this;
@@ -57,8 +54,10 @@ namespace Basis.Scripts.Device_Management.Devices.Desktop
             {
                 BasisLocalPlayer.Instance.OnLocalAvatarChanged += PlayerInitialized;
                 BasisLocalPlayer.Instance.OnPlayersHeightChanged += BasisLocalPlayer_OnPlayersHeightChanged;
+                BasisLocalPlayer_OnPlayersHeightChanged();
                 BasisCursorManagement.OnCursorStateChange += OnCursorStateChange;
                 BasisPointRaycaster.UseWorldPosition = false;
+                BasisVirtualSpine.Initialize();
                 HasEyeEvents = true;
             }
         }
@@ -82,12 +81,18 @@ namespace Basis.Scripts.Device_Management.Devices.Desktop
                 BasisLocalPlayer.Instance.OnPlayersHeightChanged -= BasisLocalPlayer_OnPlayersHeightChanged;
                 BasisCursorManagement.OnCursorStateChange -= OnCursorStateChange;
                 HasEyeEvents = false;
+
+                BasisVirtualSpine.DeInitialize();
             }
             base.OnDestroy();
         }
         private void BasisLocalPlayer_OnPlayersHeightChanged()
         {
-            BasisLocalPlayer.Instance.PlayerEyeHeight = BasisLocalPlayer.Instance.AvatarDriver.ActiveEyeHeight();
+            //   Vector3 Pos = new Vector3(0, BasisLocalPlayer.Instance.AvatarDriver.ActiveAvatarEyeHeight(), 0);
+            //  BasisLocalPlayer.Instance.AvatarDriver.GetWorldSpaceRotAndPos(() => Pos, out quaternion rot, out float3 position);
+            //  BasisLocalPlayer.Instance.PlayerEyeHeight = -position.y;
+          // float avatarHeight = BasisLocalPlayer.Instance.AvatarDriver?.ActiveAvatarEyeHeight() ?? 0;
+            BasisLocalPlayer.Instance.PlayerEyeHeight = BasisLocalPlayer.Instance.AvatarEyeHeight;
         }
         public void PlayerInitialized()
         {
@@ -120,50 +125,32 @@ namespace Basis.Scripts.Device_Management.Devices.Desktop
             rotationX += lookVector.x * rotationSpeed;
             rotationY -= lookVector.y * rotationSpeed;
         }
+        public float InjectedZRot = 0;
         public override void DoPollData()
         {
             if (hasRoleAssigned)
             {
                 characterInputActions.InputState.CopyTo(InputState);
-               // InputState.CopyTo(characterInputActions.InputState);
+                // InputState.CopyTo(characterInputActions.InputState);
                 // Apply modulo operation to keep rotation within 0 to 360 range
                 rotationX %= 360f;
                 rotationY %= 360f;
                 // Clamp rotationY to stay within the specified range
                 rotationY = Mathf.Clamp(rotationY, minimumY, maximumY);
-                LocalRawRotation = Quaternion.Euler(rotationY, rotationX, 0);
+                LocalRawRotation = Quaternion.Euler(rotationY, rotationX, InjectedZRot);
                 Vector3 adjustedHeadPosition = new Vector3(InjectedX, BasisLocalPlayer.Instance.PlayerEyeHeight, InjectedZ);
-                if (BlockCrouching)
-                {
-                    BasisLocalInputActions.Crouching = false;
-                }
                 if (BasisLocalInputActions.Crouching)
                 {
                     adjustedHeadPosition.y -= Control.TposeLocal.position.y * crouchPercentage;
                 }
-
-                CalculateAdjustment();
-                adjustedHeadPosition.y -= adjustment;
                 LocalRawPosition = adjustedHeadPosition;
                 Control.IncomingData.position = LocalRawPosition;
                 Control.IncomingData.rotation = LocalRawRotation;
-            }
-            FinalPosition = LocalRawPosition;
-            FinalRotation = LocalRawRotation;
-            UpdatePlayerControl();
-        }
-        public void CalculateAdjustment()
-        {
-            if (rotationY > 0)
-            {
-                // Positive rotation
-                adjustment = Mathf.Abs(rotationY) * (headDownwardForce * BasisLocalPlayer.Instance.AvatarDriver.ActiveEyeHeight() / Control.TposeLocal.position.y);
-            }
-            else
-            {
-                // Negative rotation
-                adjustment = Mathf.Abs(rotationY) * (headUpwardForce * BasisLocalPlayer.Instance.AvatarDriver.ActiveEyeHeight() / Control.TposeLocal.position.y);
+                FinalPosition = LocalRawPosition;
+                FinalRotation = LocalRawRotation;
+                UpdatePlayerControl();
             }
         }
+        public BasisVirtualSpineDriver BasisVirtualSpine = new BasisVirtualSpineDriver();
     }
 }

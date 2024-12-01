@@ -1,15 +1,15 @@
 using Basis.Scripts.Addressable_Driver;
 using Basis.Scripts.Addressable_Driver.Factory;
-using Basis.Scripts.Addressable_Driver.Resource;
 using Basis.Scripts.Avatar;
 using Basis.Scripts.BasisSdk.Helpers;
 using Basis.Scripts.BasisSdk.Players;
 using Basis.Scripts.TransformBinders.BoneControl;
 using Basis.Scripts.UI;
 using Basis.Scripts.UI.UI_Panels;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Linq;
+using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using static Basis.Scripts.Drivers.BaseBoneDriver;
 
 namespace Basis.Scripts.Device_Management.Devices
@@ -25,14 +25,14 @@ namespace Basis.Scripts.Device_Management.Devices
         public string UniqueDeviceIdentifier;
         public string ClassName;
         [Header("Raw data from tracker unmodified")]
-        public Vector3 LocalRawPosition;
-        public Quaternion LocalRawRotation;
+        public float3 LocalRawPosition;
+        public quaternion LocalRawRotation;
         [Header("Final Data normally just modified by EyeHeight/AvatarEyeHeight)")]
-        public Vector3 FinalPosition;
-        public Quaternion FinalRotation;
+        public float3 FinalPosition;
+        public quaternion FinalRotation;
         [Header("Avatar Offset Applied Per Frame")]
-        public Vector3 AvatarPositionOffset = Vector3.zero;
-        public Quaternion AvatarRotationOffset = Quaternion.identity;
+        public float3 AvatarPositionOffset = Vector3.zero;
+        public float3 AvatarRotationOffset = Vector3.zero;
 
         public bool HasUIInputSupport = false;
         public string CommonDeviceIdentifier;
@@ -47,6 +47,7 @@ namespace Basis.Scripts.Device_Management.Devices
         [SerializeField]
         public BasisInputState LastState = new BasisInputState();
         public BasisGeneralLocation GeneralLocation;
+        public static BasisBoneTrackedRole[] CanHaveMultipleRoles = new BasisBoneTrackedRole[] { BasisBoneTrackedRole.LeftHand, BasisBoneTrackedRole.RightHand };
         public bool TryGetRole(out BasisBoneTrackedRole BasisBoneTrackedRole)
         {
             if (hasRoleAssigned)
@@ -60,15 +61,23 @@ namespace Basis.Scripts.Device_Management.Devices
         public void AssignRoleAndTracker(BasisBoneTrackedRole Role)
         {
             hasRoleAssigned = true;
-            for (int Index = 0; Index < BasisDeviceManagement.Instance.AllInputDevices.Count; Index++)
+            int InputsCount = BasisDeviceManagement.Instance.AllInputDevices.Count;
+            for (int Index = 0; Index < InputsCount; Index++)
             {
                 BasisInput Input = BasisDeviceManagement.Instance.AllInputDevices[Index];
                 if (Input.TryGetRole(out BasisBoneTrackedRole found) && Input != this)
                 {
                     if (found == Role)
                     {
-                        Debug.LogError("Already Found tracker for  " + Role);
-                        return;
+                        if (CanHaveMultipleRoles.Contains(found) == false)
+                        {
+                            Debug.LogError("Already Found tracker for  " + Role);
+                            return;
+                        }
+                        else
+                        {
+                            Debug.Log("Has Multiple Roles assigned for " + found + " most likely ok.");
+                        }
                     }
                 }
             }
@@ -81,9 +90,19 @@ namespace Basis.Scripts.Device_Management.Devices
             {
                 if (BasisBoneTrackedRoleCommonCheck.CheckItsFBTracker(trackedRole))//we dont want to offset these ones
                 {
-                    Control.InverseOffsetFromBone.position = Quaternion.Inverse(transform.rotation) * (Control.OutgoingWorldData.position - transform.position);
-                    Control.InverseOffsetFromBone.rotation = (Quaternion.Inverse(transform.rotation) * Control.BoneTransform.rotation);
+                    InitalRotation = Quaternion.Inverse(transform.rotation);
+                    InitalBoneRotation = Control.OutgoingWorldData.rotation;
+                    Control.InverseOffsetFromBone.position = Quaternion.Inverse(transform.rotation) * ((Vector3)Control.OutgoingWorldData.position - transform.position);
+                    Control.InverseOffsetFromBone.rotation = InitalRotation * InitalBoneRotation;
                     Control.InverseOffsetFromBone.Use = true;
+                    if (BasisBoneTrackedRoleCommonCheck.CheckIfHintRole(trackedRole))//we dont want to offset these ones
+                    {
+                        Control.IsHintRoleIgnoreRotation = true;
+                    }
+                    else
+                    {
+                        Control.IsHintRoleIgnoreRotation = false;
+                    }
                 }
                 SetRealTrackers(BasisHasTracked.HasTracker, BasisHasRigLayer.HasRigLayer);
             }
@@ -92,6 +111,8 @@ namespace Basis.Scripts.Device_Management.Devices
                 Debug.LogError("Attempted to find " + Role + " but it did not exist");
             }
         }
+        public Quaternion InitalRotation;
+        public Quaternion InitalBoneRotation;
         public void UnAssignRoleAndTracker()
         {
             if(Control != null)
@@ -128,18 +149,18 @@ namespace Basis.Scripts.Device_Management.Devices
         /// <param name="subSystems"></param>
         /// <param name="ForceAssignTrackedRole"></param>
         /// <param name="basisBoneTrackedRole"></param>
-        public async Task InitalizeTracking(string uniqueID, string unUniqueDeviceID, string subSystems, bool ForceAssignTrackedRole, BasisBoneTrackedRole basisBoneTrackedRole)
+        public void InitalizeTracking(string uniqueID, string unUniqueDeviceID, string subSystems, bool ForceAssignTrackedRole, BasisBoneTrackedRole basisBoneTrackedRole)
         {
             //unassign the old tracker
             UnAssignTracker();
             Debug.Log("Finding ID " + unUniqueDeviceID);
-            AvatarRotationOffset = Quaternion.identity;
+            AvatarRotationOffset = Quaternion.identity.eulerAngles;
             //configure device identifier
             SubSystemIdentifier = subSystems;
             CommonDeviceIdentifier = unUniqueDeviceID;
             UniqueDeviceIdentifier = uniqueID;
             // lets check to see if there is a override from a devices matcher
-            BasisDeviceMatchableNames = await BasisDeviceManagement.Instance.BasisDeviceNameMatcher.GetAssociatedDeviceMatchableNames(CommonDeviceIdentifier, basisBoneTrackedRole, ForceAssignTrackedRole);
+            BasisDeviceMatchableNames = BasisDeviceManagement.Instance.BasisDeviceNameMatcher.GetAssociatedDeviceMatchableNames(CommonDeviceIdentifier, basisBoneTrackedRole, ForceAssignTrackedRole);
             if (BasisDeviceMatchableNames.HasTrackedRole)
             {
                 Debug.Log("Overriding Tracker " + BasisDeviceMatchableNames.DeviceID);
@@ -148,20 +169,12 @@ namespace Basis.Scripts.Device_Management.Devices
 
             if (hasRoleAssigned)
             {
-                if (HasControl)
+                AvatarRotationOffset = BasisDeviceMatchableNames.AvatarRotationOffset;
+                AvatarPositionOffset = BasisDeviceMatchableNames.AvatarPositionOffset;
+                HasUIInputSupport = BasisDeviceMatchableNames.HasRayCastSupport;
+                if (HasUIInputSupport)
                 {
-                    AvatarRotationOffset = Quaternion.Euler(BasisDeviceMatchableNames.AvatarRotationOffset);
-                    AvatarPositionOffset = BasisDeviceMatchableNames.AvatarPositionOffset;
-
-                    HasUIInputSupport = BasisDeviceMatchableNames.HasRayCastSupport;
-                    if (HasUIInputSupport)
-                    {
-                        CreateRayCaster(this);
-                    }
-                }
-                else
-                {
-                    Debug.LogError("Missing Tracked Role " + trackedRole);
+                    CreateRayCaster(this);
                 }
             }
             /*            if (ForceAssignTrackedRole)
@@ -192,6 +205,7 @@ namespace Basis.Scripts.Device_Management.Devices
             {
                 if (BasisBoneTrackedRoleCommonCheck.CheckItsFBTracker(trackedRole))
                 {
+                    Control.IsHintRoleIgnoreRotation = false;
                     UnAssignTracker();
                 }
             }
@@ -200,6 +214,7 @@ namespace Basis.Scripts.Device_Management.Devices
         {
             if (BasisBoneTrackedRoleCommonCheck.CheckItsFBTracker(trackedRole))
             {
+                Control.IsHintRoleIgnoreRotation = false;
                 UnAssignTracker();
             }
         }
@@ -287,6 +302,12 @@ namespace Basis.Scripts.Device_Management.Devices
             switch (trackedRole)
             {
                 case BasisBoneTrackedRole.LeftHand:
+                    float largestValue = Mathf.Abs(InputState.Primary2DAxis.x) > Mathf.Abs(InputState.Primary2DAxis.y)
+                        ? InputState.Primary2DAxis.x
+                        : InputState.Primary2DAxis.y;
+                    //0 to 1 largestValue
+
+                    BasisLocalPlayer.Instance.Move.SpeedMultiplyer = largestValue;
                     BasisLocalPlayer.Instance.Move.MovementVector = InputState.Primary2DAxis;
                     //only open ui after we have stopped pressing down on the secondary button
                     if (InputState.SecondaryButtonGetState == false && LastState.SecondaryButtonGetState)
@@ -377,34 +398,59 @@ namespace Basis.Scripts.Device_Management.Devices
         {
             InputState.CopyTo(LastState);
         }
-        public async Task ShowTrackedVisual()
+        public void ShowTrackedVisual()
         {
             if (BasisVisualTracker == null && LoadedDeviceRequest == null)
             {
-                BasisDeviceMatchSettings Match = await BasisDeviceManagement.Instance.BasisDeviceNameMatcher.GetAssociatedDeviceMatchableNames(CommonDeviceIdentifier);
+                BasisDeviceMatchSettings Match = BasisDeviceManagement.Instance.BasisDeviceNameMatcher.GetAssociatedDeviceMatchableNames(CommonDeviceIdentifier);
                 if (Match.CanDisplayPhysicalTracker)
                 {
-                    (List<GameObject>, AddressableGenericResource) data = await AddressableResourceProcess.LoadAsGameObjectsAsync(Match.DeviceID, new UnityEngine.ResourceManagement.ResourceProviders.InstantiationParameters());
-                    List<GameObject> gameObjects = data.Item1;
-                    if (gameObjects == null)
+                    var op = Addressables.LoadAssetAsync<GameObject>(Match.DeviceID);
+                    GameObject go = op.WaitForCompletion();
+                    GameObject gameObject = Object.Instantiate(go);
+                    gameObject.name = CommonDeviceIdentifier;
+                    gameObject.transform.parent = this.transform;
+                    if (gameObject.TryGetComponent(out BasisVisualTracker))
                     {
-                        return;
+                        BasisVisualTracker.Initialization(this);
                     }
-                    if (gameObjects.Count != 0)
+                }
+                else
+                {
+                    if (UseFallbackModel())
                     {
-                        foreach (GameObject gameObject in gameObjects)
+                        UnityEngine.ResourceManagement.AsyncOperations.AsyncOperationHandle<GameObject> op = Addressables.LoadAssetAsync<GameObject>(FallbackDeviceID);
+                        GameObject go = op.WaitForCompletion();
+                        GameObject gameObject = Object.Instantiate(go);
+                        gameObject.name = CommonDeviceIdentifier;
+                        gameObject.transform.parent = this.transform;
+                        if (gameObject.TryGetComponent(out BasisVisualTracker))
                         {
-                            gameObject.name = CommonDeviceIdentifier;
-                            gameObject.transform.parent = this.transform;
-                            if (gameObject.TryGetComponent(out BasisVisualTracker))
-                            {
-                                BasisVisualTracker.Initialization(this);
-                            }
+                            BasisVisualTracker.Initialization(this);
                         }
                     }
                 }
             }
         }
+        public bool UseFallbackModel()
+        {
+            if (hasRoleAssigned == false)
+            {
+                return true;
+            }
+            else
+            {
+                if (TryGetRole(out BasisBoneTrackedRole Role))
+                {
+                    if (Role == BasisBoneTrackedRole.Head || Role == BasisBoneTrackedRole.CenterEye || Role == BasisBoneTrackedRole.Neck)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+        public static string FallbackDeviceID = "FallbackSphere";
         public void HideTrackedVisual()
         {
             Debug.Log("HideTrackedVisual");

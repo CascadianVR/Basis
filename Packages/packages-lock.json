@@ -30,6 +30,12 @@
       "source": "embedded",
       "dependencies": {}
     },
+    "com.basis.gizmos": {
+      "version": "file:basisGizmos",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.basis.odinserializer": {
       "version": "file:BasisSerializer.OdinSerializer",
       "depth": 0,
@@ -44,6 +50,12 @@
         "com.unity.burst": "1.4.11",
         "com.unity.mathematics": "1.2.5"
       }
+    },
+    "com.llealloo.audiolink": {
+      "version": "file:com.llealloo.audiolink",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
     },
     "com.naelstrof.jigglephysics": {
       "version": "file:JigglePhysics",
@@ -143,7 +155,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.inputsystem": {
-      "version": "1.11.1",
+      "version": "1.11.2",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -330,7 +342,7 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.xr.openxr": {
-      "version": "1.12.1",
+      "version": "1.13.1",
       "depth": 0,
       "source": "registry",
       "dependencies": {

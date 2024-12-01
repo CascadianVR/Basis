@@ -3,6 +3,7 @@ using Basis.Scripts.Networking.NetworkedAvatar;
 using Basis.Scripts.Networking.Recievers;
 using Basis.Scripts.Networking.Transmitters;
 using Basis.Scripts.TransformBinders.BoneControl;
+using System;
 using UnityEngine;
 using static SerializableDarkRift;
 
@@ -41,7 +42,7 @@ namespace Basis.Scripts.Networking.NetworkedPlayer
         {
             LocalAvatarSyncMessage Stub = new LocalAvatarSyncMessage
             {
-                array = new byte[224]
+                array = new byte[212]
             };
             ReInitialize(player, PlayerID, Stub);
         }
