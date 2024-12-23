@@ -636,13 +636,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d50560fa4580c0743ae88a61a873ea83, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  BasisBundleDescription:
+    AssetBundleName: Chiyo
+    AssetBundleDescription: Made by Cascadian
   Animator: {fileID: 6360044141853491853}
   FaceVisemeMesh: {fileID: 6360044141853491852}
   FaceBlinkMesh: {fileID: 6360044141853491852}
   AvatarEyePosition: {x: 1.4481921, y: 0.093961924}
   AvatarMouthPosition: {x: 1.3866874, y: 0.099418655}
-  FaceVisemeMovement: 0f0000000d0000000700000011000000050000000900000014000000100000000a0000000e000000030000000600000008000000130000000c000000
-  BlinkViseme: ffffffff22000000
+  FaceVisemeMovement: 0f0000000d0000000700000011000000050000000900000004000000100000000a0000000e0000000300000006000000080000000b0000000c000000
+  BlinkViseme: 2200000022000000
   laughterBlendTarget: -1
   IsOwnedLocally: 0
   Renders:
